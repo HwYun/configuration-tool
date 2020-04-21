@@ -74,7 +74,7 @@ class Form(QWidget):
         lb = QLabel('붓 색상')
         hbox.addWidget(lb)
 
-        self.brushcolor = QColor(255, 255, 255)
+        self.brushcolor = QColor(255, 255, 255, 0)
         self.brushbtn = QPushButton()
         self.brushbtn.setStyleSheet('background-color: rgb(255, 255, 255)')
         self.brushbtn.clicked.connect(self.showColorDlg)
@@ -90,6 +90,10 @@ class Form(QWidget):
         self.checkbox = QCheckBox('지우개 동작')
         self.checkbox.clicked.connect(self.checkClicked)
         hbox.addWidget(self.checkbox)
+
+        self.clear_btn = QPushButton('초기화')
+        self.clear_btn.clicked.connect(self.clear_Clicked)
+        hbox.addWidget(self.clear_btn)
 
         leftB.addStretch(1)
 
@@ -126,9 +130,13 @@ class Form(QWidget):
     def checkClicked(self):
         pass
 
+    def clear_Clicked(self):
+        pass
+        # items.clear()
+
     def showColorDlg(self):
         # 색상 대화상자 생성
-        color = QColorDialog.getColor()
+        color = QColor(255, 0, 255, 0)
 
         sender = self.sender() # 선 색인지, 붓 색인지 구분하기 위해
 
@@ -211,6 +219,7 @@ class CView(QGraphicsView):
                 self.start = e.pos()
 
             # drawing Rectangle
+            # 일단 이거 좀 고쳐야 할게... 우측에서 좌측으로 안그려짐.
             if self.parent().drawType == 2:
                 brush = QBrush(self.parent().brushcolor)
 
