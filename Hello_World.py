@@ -33,7 +33,7 @@ class Form(QWidget):
 
         for i in range(len(text)):
             self.radiobtns.append(QRadioButton(text[i], self))
-            self.radiobtns[i].clicked.connect(self.radioCLicked)
+            self.radiobtns[i].clicked.connect(self.radioClicked)
             box.addWidget(self.radiobtns[i])
 
         self. radiobtns[0].setChecked(True)
@@ -146,7 +146,7 @@ class CView(QGraphicsView):
     # QGraphicsView의 생성자 함수.
     # QGraphicsScene클래스에 그려진 그래픽 아이템(직선, 곡선, 사각형, 원)들을 화면에 표시하는 역할을 담당.
     def __init__(self, parent):
-        super().__init(parent)
+        super().__init__(parent)
         self.scene = QGraphicsScene()
         self.setScene(self.scene)
 
@@ -168,19 +168,104 @@ class CView(QGraphicsView):
             self.start = e.pos()
             self.end = e.pos()
 
+    def mouseMoveEvent(self, e):
 
+        # e.buttons()는 정수형 값을 리턴, e.button()은 move시 Qt.Nobutton 리턴
+        if e.buttons() & Qt.LeftButton:
 
+            self.end = e.pos()
 
+            # 이건 지우개 코드인데 ㅋㅋㅋ 그냥 흰색으로 칠하는거임...
+            if self.parent().checkbox.isChecked():
+                pen = QPen(QColor(255, 255, 255), 10)  # 색이랑 펜 굵기인듯.
+                path = QPainterPath()
+                path.moveTo(self.start)
+                path.lineTo(self.end)
+                self.scene.addPath(path, pen)
+                self.start = e.pos()
+                return None
 
+            pen = QPen(self.parent().pencolor, self.parent().combo.currentIndex())
 
+            # drawing Line
+            if self.parent().drawType == 0:
 
+                # 장면에 그려진 이전 선을 제거
+                if len(self.items) > 0:
+                    self.scene.removeItem(self.items[-1])
+                    del(self.items[-1])
 
+                # 현재 선 추가
+                line = QLineF(self.start.x(), self.start.y(), self.end.x(), self.end.y())
+                self.items.append(self.scene.addLine(line, pen))
 
+            # drawing Curve
+            if self.parent().drawType == 1:
 
+                path = QPainterPath()
+                path.moveTo(self.start)
+                path.lineTo(self.end)
+                self.scene.addPath(path, pen)
 
+                # 시작점을 다시 기존 끝점으로
+                self.start = e.pos()
 
+            # drawing Rectangle
+            if self.parent().drawType == 2:
+                brush = QBrush(self.parent().brushcolor)
 
+                if len(self.items) > 0:
+                    self.scene.removeItem(self.items[-1])
+                    del(self.items[-1])
 
+                rect = QRectF(self.start, self.end)
+                self.items.append(self.scene.addRect(rect, pen, brush))
+
+            # drawing Ellipse
+            if self.parent().drawType == 3:
+                brush = QBrush(self.parent().brushcolor)
+
+                if len(self.items) > 0:
+                    self.scene.removeItem(self.items[-1])
+                    del(self.items[-1])
+
+                rect = QRectF(self.start, self.end)
+                self.items.append(self.scene.addEllipse(rect, pen, brush))
+
+    # 곡선 제외한 그리기 모드에서 마우스 클릭 해지 시 완성된 그림을 그리는 방식.
+    # 직선, 사각형, 원의 경우 클릭 해지 시 기존에 그려진 것들 삭제하고 최종적으로 다시 한번 그리는 방식.
+    def mouseReleaseEvent(self, e):
+
+        if e.button() == Qt.LeftButton:
+
+            # 지우개 모드인 경우 바로 리턴함. 다음 그리기 동작 일어나지 않게.
+            if self.parent().checkbox.isChecked():
+                return None
+
+            pen = QPen(self.parent().pencolor, self.parent().combo.currentIndex())
+
+            if self.parent().drawType == 0:
+
+                self.items.clear()
+                line = QLineF(self.start.x(), self.start.y(), self.end.x(), self.end.y())
+
+                self.scene.addLine(line, pen)
+
+            elif self.parent().drawType == 2:
+
+                brush = QBrush(self.parent().brushcolor)
+
+                self.items.clear()
+                rect = QRectF(self.start, self.end)
+                self.scene.addRect(rect, pen, brush)
+
+            elif self.parent().drawType == 3:
+
+                brush = QBrush(self.parent().brushcolor)
+
+                self.items.clear()
+                rect = QRectF(self.start, self.end)
+                self.scene.addEllipse(rect, pen, brush)
 
 
 if __name__ == "__main__":
