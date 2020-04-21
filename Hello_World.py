@@ -3,13 +3,9 @@
 
 import sys
 
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QTextEdit
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtWidgets import QBoxLayout
-from PyQt5.QtCore import Qt
-from PyQt5.QtCore import QThread
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 
 
 class Form(QWidget):
@@ -17,12 +13,26 @@ class Form(QWidget):
     def __init__(self):
 
         QWidget.__init__(self, flags=Qt.Widget)
-        self.init_widget()
 
-    def init_widget(self):
-        self.setWindowTitle("여기를 바꾸면 창 이름이 바뀝니다.")
+        self.setGeometry(30, 30, 600, 400)
+        self.begin = QPoint()
+        self.end = QPoint()
+        self.show()
 
+    def paintEvent(self, event):
+        qp = QPainter(self)
+        br = QBrush(QColor(100, 10, 10, 40))
+        qp.setBrush(br)
+        qp.drawRect(QRect(self.begin, self.end))
 
+    def mousePressEvent(self, event):
+        self.begin = event.pos()
+        self.end = event.pos()
+        self.update()
+
+    def mouseMoveEvent(self, event):
+        self.end = event.pos()
+        self.update()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
