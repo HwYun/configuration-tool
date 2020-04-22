@@ -19,6 +19,17 @@ class Form(QWidget):
         middleB = QVBoxLayout()
         rightB = QVBoxLayout()
 
+        #  그룹박스 0 사진 불러오기 버튼
+        gb = QGroupBox()
+        leftB.addWidget(gb)
+
+        hbox = QHBoxLayout()
+        gb.setLayout(hbox)
+
+        self.clear_btn = QPushButton('사진 불러오기')
+        self.clear_btn.clicked.connect(self.clear_Clicked)
+        hbox.addWidget(self.clear_btn)
+
         # 그룹박스 1
         gb = QGroupBox('그리기 종류')  # 추후 기능 변경하게되면 이 부분을 버튼으로 처리.
         leftB.addWidget(gb)
@@ -117,8 +128,8 @@ class Form(QWidget):
         Big_layB.addLayout(rightB)
 
         Big_layB.setStretchFactor(leftB, 0)
-        Big_layB.setStretchFactor(middleB, 5)
-        Big_layB.setStretchFactor(rightB, 2)
+        Big_layB.setStretchFactor(middleB, 1)
+        Big_layB.setStretchFactor(rightB, 0)
 
         self.setGeometry(100, 100, 1600, 900)
 
@@ -132,8 +143,8 @@ class Form(QWidget):
         pass
 
     def clear_Clicked(self):
-        # CView.items.clear()
-        pass
+        for i in self.view.scene.items():
+            self.view.scene.removeItem(i)
 
     def showColorDlg(self):
         # 색상 대화상자 생성
@@ -221,6 +232,7 @@ class CView(QGraphicsView):
             # drawing Rectangle
             # 일단 이거 좀 고쳐야 할게... 우측에서 좌측으로 안그려짐.
             # 밑에서 위로도 안그려짐.
+            # 해결 2020_04_22 15:55
             if self.parent().drawType == 2:
                 brush = QBrush(self.parent().brushcolor)
 
@@ -228,7 +240,7 @@ class CView(QGraphicsView):
                     self.scene.removeItem(self.items[-1])
                     del (self.items[-1])
 
-                # tL에 topLeft좌표, bR에 bottomRight 좌표
+                # tL에 topLeft좌표, rect_w에 너비, rect_h에 높이
                 self.tL , self.rect_w, self.rect_h = self.coordinateAdj()
 
                 # rect = QRectF(self.start, self.end)
@@ -244,7 +256,7 @@ class CView(QGraphicsView):
                     del (self.items[-1])
 
                 # rect = QRectF(self.start, self.end)
-                # tL에 topLeft좌표, bR에 bottomRight 좌표
+                # tL에 topLeft좌표, rect_w에 너비, rect_h에 높이
                 self.tL, self.rect_w, self.rect_h = self.coordinateAdj()
 
                 # rect = QRectF(self.start, self.end)
@@ -265,8 +277,6 @@ class CView(QGraphicsView):
             return (self.e_x, self.s_y), self.s_x - self.e_x, self.e_y - self.s_y
         else:
             return (self.e_x, self.e_y), self.s_x - self.e_x, self.s_y - self.e_y
-
-
 
     # 곡선 제외한 그리기 모드에서 마우스 클릭 해지 시 완성된 그림을 그리는 방식.
     # 직선, 사각형, 원의 경우 클릭 해지 시 기존에 그려진 것들 삭제하고 최종적으로 다시 한번 그리는 방식.
