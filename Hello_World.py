@@ -36,7 +36,7 @@ class Form(QWidget):
             self.radiobtns[i].clicked.connect(self.radioClicked)
             box.addWidget(self.radiobtns[i])
 
-        self. radiobtns[0].setChecked(True)
+        self.radiobtns[0].setChecked(True)
         self.drawType = 0
 
         # 그룹박스 2
@@ -127,18 +127,19 @@ class Form(QWidget):
             if self.radiobtns[i].isChecked():
                 self.drawType = i
                 break
+
     def checkClicked(self):
         pass
 
     def clear_Clicked(self):
+        # CView.items.clear()
         pass
-        # items.clear()
 
     def showColorDlg(self):
         # 색상 대화상자 생성
-        color = QColor(255, 0, 255, 0)
+        color = QColor(255, 255, 255, 0)  # alpha 채널 0 으로 해서 투명색임.
 
-        sender = self.sender() # 선 색인지, 붓 색인지 구분하기 위해
+        sender = self.sender()  # 선 색인지, 붓 색인지 구분하기 위해
 
         # 색상이 유효한 값이면 참, QFrame에 색 적용
         if sender == self.penbtn and color.isValid():
@@ -201,7 +202,7 @@ class CView(QGraphicsView):
                 # 장면에 그려진 이전 선을 제거
                 if len(self.items) > 0:
                     self.scene.removeItem(self.items[-1])
-                    del(self.items[-1])
+                    del (self.items[-1])
 
                 # 현재 선 추가
                 line = QLineF(self.start.x(), self.start.y(), self.end.x(), self.end.y())
@@ -209,7 +210,6 @@ class CView(QGraphicsView):
 
             # drawing Curve
             if self.parent().drawType == 1:
-
                 path = QPainterPath()
                 path.moveTo(self.start)
                 path.lineTo(self.end)
@@ -220,14 +220,19 @@ class CView(QGraphicsView):
 
             # drawing Rectangle
             # 일단 이거 좀 고쳐야 할게... 우측에서 좌측으로 안그려짐.
+            # 밑에서 위로도 안그려짐.
             if self.parent().drawType == 2:
                 brush = QBrush(self.parent().brushcolor)
 
                 if len(self.items) > 0:
                     self.scene.removeItem(self.items[-1])
-                    del(self.items[-1])
+                    del (self.items[-1])
 
-                rect = QRectF(self.start, self.end)
+                # tL에 topLeft좌표, bR에 bottomRight 좌표
+                self.tL , self.rect_w, self.rect_h = self.coordinateAdj()
+
+                # rect = QRectF(self.start, self.end)
+                rect = QRectF(self.tL[0], self.tL[1], self.rect_w, self.rect_h)
                 self.items.append(self.scene.addRect(rect, pen, brush))
 
             # drawing Ellipse
@@ -236,10 +241,32 @@ class CView(QGraphicsView):
 
                 if len(self.items) > 0:
                     self.scene.removeItem(self.items[-1])
-                    del(self.items[-1])
+                    del (self.items[-1])
 
-                rect = QRectF(self.start, self.end)
+                # rect = QRectF(self.start, self.end)
+                # tL에 topLeft좌표, bR에 bottomRight 좌표
+                self.tL, self.rect_w, self.rect_h = self.coordinateAdj()
+
+                # rect = QRectF(self.start, self.end)
+                rect = QRectF(self.tL[0], self.tL[1], self.rect_w, self.rect_h)
                 self.items.append(self.scene.addEllipse(rect, pen, brush))
+
+    def coordinateAdj(self):
+        self.s_x = self.start.x()
+        self.s_y = self.start.y()
+        self.e_x = self.end.x()
+        self.e_y = self.end.y()
+
+        if self.s_x < self.e_x and self.s_y < self.e_y:
+            return (self.s_x, self.s_y), self.e_x - self.s_x, self.e_y - self.s_y
+        elif self.s_x < self.e_x and self.s_y > self.e_y:
+            return (self.s_x, self.e_y), self.e_x - self.s_x, self.s_y - self.e_y
+        elif self.s_x > self.e_x and self.s_y < self.e_y:
+            return (self.e_x, self.s_y), self.s_x - self.e_x, self.e_y - self.s_y
+        else:
+            return (self.e_x, self.e_y), self.s_x - self.e_x, self.s_y - self.e_y
+
+
 
     # 곡선 제외한 그리기 모드에서 마우스 클릭 해지 시 완성된 그림을 그리는 방식.
     # 직선, 사각형, 원의 경우 클릭 해지 시 기존에 그려진 것들 삭제하고 최종적으로 다시 한번 그리는 방식.
