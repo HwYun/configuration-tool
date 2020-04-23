@@ -17,9 +17,9 @@ class TestWidget(QWidget):
         layout.addWidget(self.view)
         self.setLayout(layout)
 
-        self.button.clicked.connect(self.do_test)
+        self.button.clicked.connect(self.showing_Image)
 
-    def do_test(self):
+    def showing_Image(self):
         img = QPixmap('image.png')
         # enhancer = ImageEnhance.Brightness(img)
         for i in range(1, 8):
@@ -30,6 +30,7 @@ class TestWidget(QWidget):
 
     def display_image(self, img):
         self.scene.clear()
+        print(img.size())
         w, h = img.size().width(), img.size().height()
         # self.imgQ = QImage.ImageQt(img)  # we need to hold reference to imgQ, or it will crash
         # pixMap = QPixmap.fromImage(self.imgQ)

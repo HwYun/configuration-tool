@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
+import time
 
 class Form(QWidget):
 
@@ -27,7 +28,7 @@ class Form(QWidget):
         gb.setLayout(hbox)
 
         self.clear_btn = QPushButton('사진 불러오기')
-        self.clear_btn.clicked.connect(self.clear_Clicked)
+        self.clear_btn.clicked.connect(self.openFileNameDialog)
         hbox.addWidget(self.clear_btn)
 
         # 그룹박스 1
@@ -95,16 +96,16 @@ class Form(QWidget):
         gb = QGroupBox('지우개')
         leftB.addWidget(gb)
 
-        hbox = QHBoxLayout()
-        gb.setLayout(hbox)
+        vbox = QVBoxLayout()
+        gb.setLayout(vbox)
 
-        self.checkbox = QCheckBox('지우개 동작')
-        self.checkbox.clicked.connect(self.checkClicked)
-        hbox.addWidget(self.checkbox)
+        self.Dclear_btn = QPushButton('Reset only Drawing')
+        self.Dclear_btn.clicked.connect(self.clear_Clicked_drawing)
+        vbox.addWidget(self.Dclear_btn)
 
-        self.clear_btn = QPushButton('초기화')
+        self.clear_btn = QPushButton('All Reset')
         self.clear_btn.clicked.connect(self.clear_Clicked)
-        hbox.addWidget(self.clear_btn)
+        vbox.addWidget(self.clear_btn)
 
         leftB.addStretch(1)
 
@@ -131,7 +132,7 @@ class Form(QWidget):
         Big_layB.setStretchFactor(middleB, 1)
         Big_layB.setStretchFactor(rightB, 0)
 
-        self.setGeometry(100, 100, 1600, 900)
+        self.setGeometry(50, 50, 1600, 900)
 
     def radioClicked(self):
         for i in range(len(self.radiobtns)):
@@ -142,9 +143,14 @@ class Form(QWidget):
     def checkClicked(self):
         pass
 
+    # 화면에 표시된거 클리어
     def clear_Clicked(self):
+        self.view.scene.clear()
+
+    def clear_Clicked_drawing(self):
         for i in self.view.scene.items():
             self.view.scene.removeItem(i)
+        self.display_image(self.sid)
 
     def showColorDlg(self):
         # 색상 대화상자 생성
@@ -159,6 +165,36 @@ class Form(QWidget):
         else:
             self.brushcolor = color
             self.brushbtn.setStyleSheet('background-color: {}'.format(color.name()))
+
+    def showing_Image(self):
+        img = QPixmap('image.png')
+        # enhancer = ImageEnhance.Brightness(img)
+        for i in range(1, 8):
+            # img = enhancer.enhance(i)
+            self.display_image(img)
+            # QCoreApplication.processEvents()  # let Qt do his work
+            # time.sleep(0.5)
+
+    def display_image(self, img):
+        self.view.scene.clear()
+        print(img.size())
+        w, h = img.size().width(), img.size().height()
+        # self.imgQ = QImage.ImageQt(img)  # we need to hold reference to imgQ, or it will crash
+        # pixMap = QPixmap.fromImage(self.imgQ)
+        # img.scaled(1280, 720)
+        self.view.scene.addPixmap(img)
+
+        # self.view.fitInView(QRectF(0, 0, w, h), Qt.KeepAspectRatio)
+        # self.view.scene.update()
+
+    def openFileNameDialog(self):
+        fileName, f_type = QFileDialog.getOpenFileName(self, "불러올 이미지를 선택하세요", "",
+                                                  "All Files(*);;Python Files (*.py)")
+        if fileName:
+            print(fileName)
+            self.sid = QPixmap(fileName)
+
+        self.display_image(self.sid)
 
 
 class CView(QGraphicsView):
@@ -175,13 +211,14 @@ class CView(QGraphicsView):
         self.start = QPointF()
         self.end = QPointF()
 
-        # self.setRenderHint(QPainter.HighQualityAntialiasing)
+        self.setRenderHint(QPainter.HighQualityAntialiasing)
 
+    """
     def moveEvent(self, e):
         rect = QRectF(self.rect())
         rect.adjust(0, 0, -2, -2)
         self.scene.setSceneRect(rect)
-
+    """
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
             # 시작점 저장
@@ -196,15 +233,16 @@ class CView(QGraphicsView):
             self.end = e.pos()
 
             # 이건 지우개 코드인데 ㅋㅋㅋ 그냥 흰색으로 칠하는거임...
+            """
             if self.parent().checkbox.isChecked():
-                pen = QPen(QColor(255, 255, 255), 10)  # 색이랑 펜 굵기인듯.
+                pen = QPen(QColor(255, 255, 255), 30)  # 색이랑 펜 굵기인듯.
                 path = QPainterPath()
                 path.moveTo(self.start)
                 path.lineTo(self.end)
                 self.scene.addPath(path, pen)
                 self.start = e.pos()
                 return None
-
+            """
             pen = QPen(self.parent().pencolor, self.parent().combo.currentIndex())
 
             # drawing Line
@@ -263,6 +301,7 @@ class CView(QGraphicsView):
                 rect = QRectF(self.tL[0], self.tL[1], self.rect_w, self.rect_h)
                 self.items.append(self.scene.addEllipse(rect, pen, brush))
 
+    # 직사각형  대각위치의 좌표 2개 입력받으면 topLeft좌표와 width, height 반환 함수.
     def coordinateAdj(self):
         self.s_x = self.start.x()
         self.s_y = self.start.y()
@@ -285,9 +324,10 @@ class CView(QGraphicsView):
         if e.button() == Qt.LeftButton:
 
             # 지우개 모드인 경우 바로 리턴함. 다음 그리기 동작 일어나지 않게.
+            """
             if self.parent().checkbox.isChecked():
                 return None
-
+            """
             pen = QPen(self.parent().pencolor, self.parent().combo.currentIndex())
 
             if self.parent().drawType == 0:
@@ -312,6 +352,7 @@ class CView(QGraphicsView):
                 self.items.clear()
                 rect = QRectF(self.start, self.end)
                 self.scene.addEllipse(rect, pen, brush)
+
 
 
 if __name__ == "__main__":
