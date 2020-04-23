@@ -10,7 +10,7 @@ class Form(QWidget):
 
     def __init__(self):
         QWidget.__init__(self, flags=Qt.Widget)
-
+        self.view = CView(self)
         # 전체 레이아웃 박스
         Big_layB = QHBoxLayout()
         self.setLayout(Big_layB)
@@ -109,17 +109,25 @@ class Form(QWidget):
 
         leftB.addStretch(1)
 
+
         # 중앙 레이아웃 박스에 그래픽 뷰 추가
-        self.view = CView(self)
+
         middleB.addWidget(self.view)
 
         # 우측 레이아웃 박스 구성
 
-        gb = QGroupBox('테스트')
+        # 그룹박스 5
+        gb = QGroupBox('마우스 위치')
         rightB.addWidget(gb)
 
-        hbox = QHBoxLayout()
-        gb.setLayout(hbox)
+        vbox = QVBoxLayout()
+        gb.setLayout(vbox)
+
+        self.text = 'topLeft: {0},{1}\nbottomRight: {2},{3}'.format(0.0, 0.0, 0.0, 0.0)
+        self.lb5 = QLabel(self.text, self)
+        vbox.addWidget(self.lb5)
+
+        self.setMouseTracking(True)
 
         rightB.addStretch(1)
 
@@ -134,6 +142,25 @@ class Form(QWidget):
 
         self.setGeometry(50, 50, 1600, 900)
 
+    def mouseMoveEvent(self, e):
+        # x = e.x()
+        # y = e.y()
+        start_x = self.view.start.x()
+        start_y = self.view.start.y()
+        end_x = self.view.end.x()
+        end_y = self.view.end.y()
+        # self.view.mouse_place = e.pos()
+
+        tL, w, h = self.view.coordinateAdj()
+        bR = list()
+        bR.append(tL[0] + w)
+        bR.append(tL[1] + h)
+
+        # text = 'start_x: {0}, start_y: {1}\nend_x: {2}, end_y : {3}'.format(start_x, start_y, end_x, end_y)
+        text = 'topLeft: {0},{1}\nbottomRight: {2},{3}'.format(tL[0], tL[1], bR[0], bR[1])
+        self.lb5.setText(text)
+        self.lb5.adjustSize()
+
     def radioClicked(self):
         for i in range(len(self.radiobtns)):
             if self.radiobtns[i].isChecked():
@@ -147,14 +174,18 @@ class Form(QWidget):
     def clear_Clicked(self):
         self.view.scene.clear()
 
+    # 진정한 의미로 그린것만 지움. 편법사용 x
     def clear_Clicked_drawing(self):
         for i in self.view.scene.items():
-            self.view.scene.removeItem(i)
-        self.display_image(self.sid)
+            # print(i)
+            # print(type(i))
+            if type(i) is not QGraphicsPixmapItem:
+                self.view.scene.removeItem(i)
+        # self.display_image(self.sid)
 
     def showColorDlg(self):
         # 색상 대화상자 생성
-        color = QColor(255, 255, 255, 0)  # alpha 채널 0 으로 해서 투명색임.
+        color = QColorDialog.getColor()  # alpha 채널 0 으로 해서 투명색임.
 
         sender = self.sender()  # 선 색인지, 붓 색인지 구분하기 위해
 
@@ -162,9 +193,10 @@ class Form(QWidget):
         if sender == self.penbtn and color.isValid():
             self.pencolor = color
             self.penbtn.setStyleSheet('background-color: {}'.format(color.name()))
-        else:
-            self.brushcolor = color
-            self.brushbtn.setStyleSheet('background-color: {}'.format(color.name()))
+        else:  # 붓 색은 무조건 투명
+            pass
+            # self.brushcolor = color
+            # self.brushbtn.setStyleSheet('background-color: {}'.format(color.name()))
 
     def showing_Image(self):
         img = QPixmap('image.png')
@@ -181,7 +213,7 @@ class Form(QWidget):
         w, h = img.size().width(), img.size().height()
         # self.imgQ = QImage.ImageQt(img)  # we need to hold reference to imgQ, or it will crash
         # pixMap = QPixmap.fromImage(self.imgQ)
-        # img.scaled(1280, 720)
+        img.scaled(1280, 720)
         self.view.scene.addPixmap(img)
 
         # self.view.fitInView(QRectF(0, 0, w, h), Qt.KeepAspectRatio)
@@ -193,8 +225,7 @@ class Form(QWidget):
         if fileName:
             print(fileName)
             self.sid = QPixmap(fileName)
-
-        self.display_image(self.sid)
+            self.display_image(self.sid)
 
 
 class CView(QGraphicsView):
@@ -212,13 +243,13 @@ class CView(QGraphicsView):
         self.end = QPointF()
 
         self.setRenderHint(QPainter.HighQualityAntialiasing)
+        self.mouse_place = QPointF()
 
-    """
     def moveEvent(self, e):
         rect = QRectF(self.rect())
         rect.adjust(0, 0, -2, -2)
         self.scene.setSceneRect(rect)
-    """
+
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
             # 시작점 저장
@@ -226,13 +257,14 @@ class CView(QGraphicsView):
             self.end = e.pos()
 
     def mouseMoveEvent(self, e):
-
+        # self.mouse_place = e.pos()
+        # print(2)
         # e.buttons()는 정수형 값을 리턴, e.button()은 move시 Qt.Nobutton 리턴
         if e.buttons() & Qt.LeftButton:
 
             self.end = e.pos()
 
-            # 이건 지우개 코드인데 ㅋㅋㅋ 그냥 흰색으로 칠하는거임...
+            # 이건 지우개 코드 일단 흰색으로 칠함.
             """
             if self.parent().checkbox.isChecked():
                 pen = QPen(QColor(255, 255, 255), 30)  # 색이랑 펜 굵기인듯.
