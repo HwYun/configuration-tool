@@ -6,10 +6,34 @@ from PyQt5.QtCore import *
 
 import time
 
+
+class WaH:
+    def __init__(self):
+        self.width = 0
+        self.height = 0
+
+
+class TopView:
+    def __init__(self):
+        self.pts = list()
+        for i in range(4):
+            pt = QPoint()
+            self.pts.append(pt)
+        self.size = WaH()
+
+
 class Form(QWidget):
 
     def __init__(self):
         QWidget.__init__(self, flags=Qt.Widget)
+        self.brushcolor = QColor(255, 255, 255, 0)
+
+        self.tL = QPointF()  # topLeft
+        self.bR = QPointF()  # bottomRight
+
+        # 탑 뷰
+        self.top_view = TopView()
+
         self.view = CView(self)
         # 전체 레이아웃 박스
         Big_layB = QHBoxLayout()
@@ -57,7 +81,7 @@ class Form(QWidget):
 
         grid = QGridLayout()
         gb.setLayout(grid)
-
+        """
         lb = QLabel('선굵기')
         grid.addWidget(lb, 0, 0)
 
@@ -66,16 +90,17 @@ class Form(QWidget):
 
         for i in range(1, 51):
             self.combo.addItem(str(i))
-
+        """
         lb = QLabel('선색상')
         grid.addWidget(lb, 1, 0)
 
-        self.pencolor = QColor(0, 0, 0)
+        self.pencolor = QColor(0, 255, 0)
         self.penbtn = QPushButton()
         self.penbtn.setStyleSheet('background-color: rgb(0, 0, 0')
         self.penbtn.clicked.connect(self.showColorDlg)
         grid.addWidget(self.penbtn, 1, 1)
 
+        """
         # 그룹박스 3
         gb = QGroupBox('붓 설정')
         leftB.addWidget(gb)
@@ -86,11 +111,21 @@ class Form(QWidget):
         lb = QLabel('붓 색상')
         hbox.addWidget(lb)
 
-        self.brushcolor = QColor(255, 255, 255, 0)
+        
         self.brushbtn = QPushButton()
         self.brushbtn.setStyleSheet('background-color: rgb(255, 255, 255)')
         self.brushbtn.clicked.connect(self.showColorDlg)
         hbox.addWidget(self.brushbtn)
+        """
+
+        # 그룹박스 3
+        self.TvWidth_input_btn = QPushButton('탑뷰 너비')
+        self.TvWidth_input_btn.clicked.connect(self.getTvWidth)
+        leftB.addWidget(self.TvWidth_input_btn)
+
+        self.TvHeight_input_btn = QPushButton('탑뷰 높이')
+        self.TvHeight_input_btn.clicked.connect(self.getTvHeight)
+        leftB.addWidget(self.TvHeight_input_btn)
 
         #  그룹박스 4
         gb = QGroupBox('지우개')
@@ -109,7 +144,6 @@ class Form(QWidget):
 
         leftB.addStretch(1)
 
-
         # 중앙 레이아웃 박스에 그래픽 뷰 추가
 
         middleB.addWidget(self.view)
@@ -117,18 +151,22 @@ class Form(QWidget):
         # 우측 레이아웃 박스 구성
 
         # 그룹박스 5
-        gb = QGroupBox('마우스 위치')
+        gb = QGroupBox('각종 속성 값')
         rightB.addWidget(gb)
 
         vbox = QVBoxLayout()
         gb.setLayout(vbox)
 
-        self.text = 'topLeft: {0},{1}\nbottomRight: {2},{3}'.format(0.0, 0.0, 0.0, 0.0)
-        self.lb5 = QLabel(self.text, self)
+        self.coord_text = 'topLeft: ( {0}, {1} )\nbottomRight: ( {2}, {3} )'.format(0.0, 0.0, 0.0, 0.0)
+        self.lb5 = QLabel(self.coord_text, self)
         vbox.addWidget(self.lb5)
 
         self.setMouseTracking(True)
 
+        self.TvSize_text = "TopView_Width: {0}\nTopView_Height: {1}".format(self.top_view.size.width,
+                                                                            self.top_view.size.height)
+        self.lb6 = QLabel(self.TvSize_text, self)
+        vbox.addWidget(self.lb6)
         rightB.addStretch(1)
 
         # 전체 레이아웃 박스에 좌 중 우 박스 배치
@@ -150,21 +188,26 @@ class Form(QWidget):
         end_x = self.view.end.x()
         end_y = self.view.end.y()
         # self.view.mouse_place = e.pos()
-
-        tL, w, h = self.view.coordinateAdj()
-        bR = list()
-        bR.append(tL[0] + w)
-        bR.append(tL[1] + h)
+        (self.tL.x, self.tL.y), w, h = self.view.coordinateAdj()
+        self.bR.x = (self.tL.x + w)
+        self.bR.y = (self.tL.y + h)
 
         # text = 'start_x: {0}, start_y: {1}\nend_x: {2}, end_y : {3}'.format(start_x, start_y, end_x, end_y)
-        text = 'topLeft: {0},{1}\nbottomRight: {2},{3}'.format(tL[0], tL[1], bR[0], bR[1])
-        self.lb5.setText(text)
+        self.coord_text = 'topLeft: ( {0}, {1} )\nbottomRight: ( {2}, {3} )'.format(self.tL.x, self.tL.y,
+                                                                                    self.bR.x, self.bR.y)
+        self.lb5.setText(self.coord_text)
         self.lb5.adjustSize()
 
     def radioClicked(self):
         for i in range(len(self.radiobtns)):
             if self.radiobtns[i].isChecked():
                 self.drawType = i
+                if i == 0:  # 직선
+                    self.pencolor = QColor(0, 255, 0)  # Green
+                elif i == 1:  # 곡선
+                    self.pencolor = QColor(0, 0, 255)  # Blue
+                elif i == 2:  # 직사각형
+                    self.pencolor = QColor(255, 0, 0)  # Red
                 break
 
     def checkClicked(self):
@@ -185,7 +228,7 @@ class Form(QWidget):
 
     def showColorDlg(self):
         # 색상 대화상자 생성
-        color = QColorDialog.getColor()  # alpha 채널 0 으로 해서 투명색임.
+        color = QColorDialog.getColor()
 
         sender = self.sender()  # 선 색인지, 붓 색인지 구분하기 위해
 
@@ -221,11 +264,25 @@ class Form(QWidget):
 
     def openFileNameDialog(self):
         fileName, f_type = QFileDialog.getOpenFileName(self, "불러올 이미지를 선택하세요", "",
-                                                  "All Files(*);;Python Files (*.py)")
+                                                       "All Files(*);;Python Files (*.py)")
         if fileName:
             print(fileName)
             self.sid = QPixmap(fileName)
             self.display_image(self.sid)
+
+    def getTvWidth(self):
+        width, ok = QInputDialog.getInt(self, '', "Enter TopView Width")
+        if ok:
+            self.top_view.size.width = width
+            self.lb6.setText("TopView_Width: {0}\nTopView_Height: {1}".format(self.top_view.size.width,
+                                                                              self.top_view.size.height))
+
+    def getTvHeight(self):
+        height, ok = QInputDialog.getInt(self, '', "Enter TopView Height")
+        if ok:
+            self.top_view.size.height = height
+            self.lb6.setText("TopView_Width: {0}\nTopView_Height: {1}".format(self.top_view.size.width,
+                                                                              self.top_view.size.height))
 
 
 class CView(QGraphicsView):
@@ -241,6 +298,10 @@ class CView(QGraphicsView):
 
         self.start = QPointF()
         self.end = QPointF()
+
+        self.tL = QPointF()
+        self.rect_w = 0.0
+        self.rect_h = 0.0
 
         self.setRenderHint(QPainter.HighQualityAntialiasing)
         self.mouse_place = QPointF()
@@ -275,7 +336,7 @@ class CView(QGraphicsView):
                 self.start = e.pos()
                 return None
             """
-            pen = QPen(self.parent().pencolor, self.parent().combo.currentIndex())
+            pen = QPen(self.parent().pencolor, 3)
 
             # drawing Line
             if self.parent().drawType == 0:
@@ -306,15 +367,17 @@ class CView(QGraphicsView):
             if self.parent().drawType == 2:
                 brush = QBrush(self.parent().brushcolor)
 
+                # pen = QPen(QColor(0, 255, 0), 3)
+
                 if len(self.items) > 0:
                     self.scene.removeItem(self.items[-1])
                     del (self.items[-1])
 
                 # tL에 topLeft좌표, rect_w에 너비, rect_h에 높이
-                self.tL , self.rect_w, self.rect_h = self.coordinateAdj()
+                (self.tL.x, self.tL.y), self.rect_w, self.rect_h = self.coordinateAdj()
 
                 # rect = QRectF(self.start, self.end)
-                rect = QRectF(self.tL[0], self.tL[1], self.rect_w, self.rect_h)
+                rect = QRectF(self.tL.x, self.tL.y, self.rect_w, self.rect_h)
                 self.items.append(self.scene.addRect(rect, pen, brush))
 
             # drawing Ellipse
@@ -327,11 +390,21 @@ class CView(QGraphicsView):
 
                 # rect = QRectF(self.start, self.end)
                 # tL에 topLeft좌표, rect_w에 너비, rect_h에 높이
-                self.tL, self.rect_w, self.rect_h = self.coordinateAdj()
+
+                (self.tL.x, self.tL.y), self.rect_w, self.rect_h = self.coordinateAdj()
 
                 # rect = QRectF(self.start, self.end)
-                rect = QRectF(self.tL[0], self.tL[1], self.rect_w, self.rect_h)
+                rect = QRectF(self.tL.x, self.tL.y, self.rect_w, self.rect_h)
                 self.items.append(self.scene.addEllipse(rect, pen, brush))
+            # print("!!")
+            self.parent().lb5.setText('topLeft: ( {0}, {1} )\nbottomRight: ( {2}, {3} )'.format(self.tL.x,
+                                                                                                 self.tL.y,
+                                                                                                 self.tL.x + self.rect_w,
+                                                                                                 self.tL.y + self.rect_h))
+            print('topLeft: ( {0}, {1} )\nbottomRight: ( {2}, {3} )'.format(self.tL.x,
+                                                                            self.tL.y,
+                                                                            self.tL.x + self.rect_w,
+                                                                            self.tL.y + self.rect_h))
 
     # 직사각형  대각위치의 좌표 2개 입력받으면 topLeft좌표와 width, height 반환 함수.
     def coordinateAdj(self):
@@ -360,7 +433,7 @@ class CView(QGraphicsView):
             if self.parent().checkbox.isChecked():
                 return None
             """
-            pen = QPen(self.parent().pencolor, self.parent().combo.currentIndex())
+            pen = QPen(self.parent().pencolor, 3)
 
             if self.parent().drawType == 0:
 
@@ -372,6 +445,7 @@ class CView(QGraphicsView):
             elif self.parent().drawType == 2:
 
                 brush = QBrush(self.parent().brushcolor)
+                # pen = QPen(QColor(0, 255, 0), 3)
 
                 self.items.clear()
                 rect = QRectF(self.start, self.end)
@@ -384,7 +458,6 @@ class CView(QGraphicsView):
                 self.items.clear()
                 rect = QRectF(self.start, self.end)
                 self.scene.addEllipse(rect, pen, brush)
-
 
 
 if __name__ == "__main__":
