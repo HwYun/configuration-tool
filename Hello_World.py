@@ -66,7 +66,7 @@ class Form(QWidget):
         gb.setLayout(box)
 
         # 그룹박스 1 라디오 버튼 배치
-        text = ['Line', 'Curve', "Rectangle", 'Ellipse']
+        text = ['counting_line', 'top_view', "frame_area", 'test']
         self.radiobtns = []
 
         for i in range(len(text)):
