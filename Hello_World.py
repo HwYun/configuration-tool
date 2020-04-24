@@ -28,6 +28,8 @@ class Form(QWidget):
         QWidget.__init__(self, flags=Qt.Widget)
         self.brushcolor = QColor(255, 255, 255, 0)
 
+        self.ROI = ""
+
         self.tL = QPointF()  # topLeft
         self.bR = QPointF()  # bottomRight
 
@@ -127,6 +129,10 @@ class Form(QWidget):
         self.TvHeight_input_btn.clicked.connect(self.getTvHeight)
         leftB.addWidget(self.TvHeight_input_btn)
 
+        self.ROI_input_btn = QPushButton('ROI')
+        self.ROI_input_btn.clicked.connect(self.getROI)
+        leftB.addWidget(self.ROI_input_btn)
+
         #  그룹박스 4
         gb = QGroupBox('지우개')
         leftB.addWidget(gb)
@@ -167,6 +173,9 @@ class Form(QWidget):
                                                                             self.top_view.size.height)
         self.lb6 = QLabel(self.TvSize_text, self)
         vbox.addWidget(self.lb6)
+
+        self.roi_path = QLabel("ROI\n", self)
+        vbox.addWidget(self.roi_path)
         rightB.addStretch(1)
 
         # 전체 레이아웃 박스에 좌 중 우 박스 배치
@@ -205,7 +214,7 @@ class Form(QWidget):
                 if i == 0:  # 직선
                     self.pencolor = QColor(0, 255, 0)  # Green
                 elif i == 1:  # 곡선
-                    self.pencolor = QColor(0, 0, 255)  # Blue
+                    self.pencolor = QColor(20, 181, 255)  # Blue
                 elif i == 2:  # 직사각형
                     self.pencolor = QColor(255, 0, 0)  # Red
                 break
@@ -256,7 +265,7 @@ class Form(QWidget):
         w, h = img.size().width(), img.size().height()
         # self.imgQ = QImage.ImageQt(img)  # we need to hold reference to imgQ, or it will crash
         # pixMap = QPixmap.fromImage(self.imgQ)
-        img.scaled(1280, 720)
+        # img.scaled(1280, 720)
         self.view.scene.addPixmap(img)
 
         # self.view.fitInView(QRectF(0, 0, w, h), Qt.KeepAspectRatio)
@@ -269,6 +278,13 @@ class Form(QWidget):
             print(fileName)
             self.sid = QPixmap(fileName)
             self.display_image(self.sid)
+
+    def getROI(self):
+        fileName, f_type = QFileDialog.getOpenFileName(self, "Select ROI", "",
+                                                       "All Files(*);;Python Files (*.py)")
+        if fileName:
+            self.ROI = fileName
+            self.roi_path.setText("ROI\n"+fileName)
 
     def getTvWidth(self):
         width, ok = QInputDialog.getInt(self, '', "Enter TopView Width")
@@ -336,7 +352,7 @@ class CView(QGraphicsView):
                 self.start = e.pos()
                 return None
             """
-            pen = QPen(self.parent().pencolor, 3)
+            pen = QPen(self.parent().pencolor, 4)
 
             # drawing Line
             if self.parent().drawType == 0:
@@ -346,6 +362,7 @@ class CView(QGraphicsView):
                     self.scene.removeItem(self.items[-1])
                     del (self.items[-1])
 
+                (self.tL.x, self.tL.y), self.rect_w, self.rect_h = self.coordinateAdj()
                 # 현재 선 추가
                 line = QLineF(self.start.x(), self.start.y(), self.end.x(), self.end.y())
                 self.items.append(self.scene.addLine(line, pen))
