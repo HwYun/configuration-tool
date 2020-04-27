@@ -16,9 +16,7 @@ class WaH:
 class TopView:
     def __init__(self):
         self.pts = list()
-        for i in range(4):
-            pt = QPoint()
-            self.pts.append(pt)
+        self.index = 0
         self.size = WaH()
 
 
@@ -68,7 +66,7 @@ class Form(QWidget):
         gb.setLayout(box)
 
         # 그룹박스 1 라디오 버튼 배치
-        text = ['counting_line', 'top_view', "frame_area", 'test']
+        text = ['counting_line', 'top_view', "frame_area"]
         self.radiobtns = []
 
         for i in range(len(text)):
@@ -240,6 +238,13 @@ class Form(QWidget):
         self.view.scene.clear()
         while len(self.counting_line_lst):
             self.counting_line_lst.pop()
+        while len(self.top_view.pts):
+            self.top_view.pts.pop()
+        self.top_view.index = 0
+        self.counting_line_lb.setText("counting_line: []")
+        self.frame_area_lb.setText('frame_area: ( {0}, {1} ), ( {2}, {3} )'.format(0.0, 0.0, 0.0, 0.0))
+        self.Tvpoint_lb.setText("top_view_point: [[{0}, {1}], [{2}, {3}],"
+                                " [{4}, {5}], [{6}, {7}]]".format(0, 0, 0, 0, 0, 0, 0, 0))
 
     # 진정한 의미로 그린것만 지움. 편법사용 x
     def clear_Clicked_drawing(self):
@@ -250,6 +255,13 @@ class Form(QWidget):
                 self.view.scene.removeItem(i)
         while len(self.counting_line_lst):
             self.counting_line_lst.pop()
+        while len(self.top_view.pts):
+            self.top_view.pts.pop()
+        self.top_view.index = 0
+        self.counting_line_lb.setText("counting_line: []")
+        self.frame_area_lb.setText('frame_area: ( {0}, {1} ), ( {2}, {3} )'.format(0.0, 0.0, 0.0, 0.0))
+        self.Tvpoint_lb.setText("top_view_point: [[{0}, {1}], [{2}, {3}],"
+                                " [{4}, {5}], [{6}, {7}]]".format(0, 0, 0, 0, 0, 0, 0, 0))
         # self.display_image(self.sid)
 
     def showColorDlg(self):
@@ -349,6 +361,38 @@ class CView(QGraphicsView):
             self.start = e.pos()
             self.end = e.pos()
 
+            # top_view 점찍기.
+            tmp_idx = self.parent().top_view.index
+            print(tmp_idx)
+            tmp_text = "top_view: \n["
+            if self.parent().drawType == 1 and self.parent().top_view.index < 4:  # top_view
+                self.parent().top_view.pts.append(self.start)
+                for i in range(len(self.parent().top_view.pts)):
+                    tmp_text = tmp_text + str([self.parent().top_view.pts[i].x(),
+                                               self.parent().top_view.pts[i].y()]) + ",\n"
+                tmp_text = tmp_text[:-2] + "]"
+                self.parent().Tvpoint_lb.setText(tmp_text)
+
+                pen = QPen(self.parent().pencolor, 4)
+
+                if tmp_idx > 0:
+                    line = QLineF(self.parent().top_view.pts[tmp_idx - 1].x(),
+                                  self.parent().top_view.pts[tmp_idx - 1].y(),
+                                  self.parent().top_view.pts[tmp_idx].x(),
+                                  self.parent().top_view.pts[tmp_idx].y())
+                    self.items.append(self.scene.addLine(line, pen))
+                    if tmp_idx == 3:
+                        line = QLineF(self.parent().top_view.pts[0].x(),
+                                      self.parent().top_view.pts[0].y(),
+                                      self.parent().top_view.pts[3].x(),
+                                      self.parent().top_view.pts[3].y())
+                        self.items.append(self.scene.addLine(line, pen))
+                else:
+                    line = QLineF(self.start.x(), self.start.y(), self.start.x(), self.start.y())
+                    self.items.append(self.scene.addLine(line, pen))
+
+                self.parent().top_view.index = self.parent().top_view.index + 1
+
 
     def mouseMoveEvent(self, e):
         # self.mouse_place = e.pos()
@@ -379,12 +423,13 @@ class CView(QGraphicsView):
                     self.scene.removeItem(self.items[-1])
                     del (self.items[-1])
 
-                (self.tL.x, self.tL.y), self.rect_w, self.rect_h = self.coordinateAdj()
+                # (self.tL.x, self.tL.y), self.rect_w, self.rect_h = self.coordinateAdj()
                 # 현재 선 추가
                 line = QLineF(self.start.x(), self.start.y(), self.end.x(), self.end.y())
                 self.items.append(self.scene.addLine(line, pen))
 
             # top_view
+            """
             if self.parent().drawType == 1:
                 path = QPainterPath()
                 path.moveTo(self.start)
@@ -392,8 +437,8 @@ class CView(QGraphicsView):
                 self.scene.addPath(path, pen)
 
                 # 시작점을 다시 기존 끝점으로
-                self.start = e.pos()
-
+                # self.start = e.pos()
+            """
             # frame_area
             # 일단 이거 좀 고쳐야 할게... 우측에서 좌측으로 안그려짐.
             # 밑에서 위로도 안그려짐.
@@ -420,6 +465,7 @@ class CView(QGraphicsView):
                 self.items.append(self.scene.addRect(rect, pen, brush))
 
             # test
+            """
             if self.parent().drawType == 3:
                 brush = QBrush(self.parent().brushcolor)
 
@@ -435,6 +481,7 @@ class CView(QGraphicsView):
                 # rect = QRectF(self.start, self.end)
                 rect = QRectF(self.tL.x, self.tL.y, self.rect_w, self.rect_h)
                 self.items.append(self.scene.addEllipse(rect, pen, brush))
+            """
 
 
     # 직사각형  대각위치의 좌표 2개 입력받으면 topLeft좌표와 width, height 반환 함수.
@@ -474,7 +521,7 @@ class CView(QGraphicsView):
                 self.parent().counting_line_lst.append([[self.start.x(), self.start.y()],[self.end.x(), self.end.y()]])
                 print(self.parent().counting_line_lst)
 
-                tmp_text = "["
+                tmp_text = "counting_line: \n["
                 for i in range(len(self.parent().counting_line_lst)):
                     tmp_text = tmp_text + str(self.parent().counting_line_lst[i]) + ",\n"
                 tmp_text = tmp_text[:-2] + "]"
