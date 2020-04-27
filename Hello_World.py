@@ -28,6 +28,8 @@ class Form(QWidget):
         QWidget.__init__(self, flags=Qt.Widget)
         self.brushcolor = QColor(255, 255, 255, 0)
 
+        self.counting_line_lst = []
+
         self.ROI = ""
 
         self.tL = QPointF()  # topLeft
@@ -157,25 +159,32 @@ class Form(QWidget):
         # 우측 레이아웃 박스 구성
 
         # 그룹박스 5
-        gb = QGroupBox('각종 속성 값')
-        rightB.addWidget(gb)
+        self.gb5 = QGroupBox('각종 속성 값')
+        rightB.addWidget(self.gb5)
 
-        vbox = QVBoxLayout()
-        gb.setLayout(vbox)
+        self.gb5_vbox = QVBoxLayout()
+        self.gb5.setLayout(self.gb5_vbox)
 
-        self.coord_text = 'topLeft: ( {0}, {1} )\nbottomRight: ( {2}, {3} )'.format(0.0, 0.0, 0.0, 0.0)
-        self.lb5 = QLabel(self.coord_text, self)
-        vbox.addWidget(self.lb5)
+        self.coord_text = 'frame_area: ( {0}, {1} ), ( {2}, {3} )'.format(0.0, 0.0, 0.0, 0.0)
+        self.frame_area_lb = QLabel(self.coord_text, self)
+        self.gb5_vbox.addWidget(self.frame_area_lb)
 
         self.setMouseTracking(True)
 
-        self.TvSize_text = "TopView_Width: {0}\nTopView_Height: {1}".format(self.top_view.size.width,
-                                                                            self.top_view.size.height)
-        self.lb6 = QLabel(self.TvSize_text, self)
-        vbox.addWidget(self.lb6)
+        self.Tvpoint_text = "top_view_point: [[{0}, {1}], [{2}, {3}], [{4}, {5}], [{6}, {7}]]".format(0, 0, 0, 0, 0, 0, 0, 0)
+        self.Tvpoint_lb = QLabel(self.Tvpoint_text, self)
+        self.gb5_vbox.addWidget(self.Tvpoint_lb)
+
+        self.TvSize_text = "top_view_size({0}, {1})".format(self.top_view.size.width, self.top_view.size.height)
+        self.TvSize_lb = QLabel(self.TvSize_text, self)
+        self.gb5_vbox.addWidget(self.TvSize_lb)
+
+        self.counting_line_text = "counting_line: " + str(self.counting_line_lst)
+        self.counting_line_lb = QLabel(self.counting_line_text, self)
+        self.gb5_vbox.addWidget(self.counting_line_lb)
 
         self.roi_path = QLabel("ROI\n", self)
-        vbox.addWidget(self.roi_path)
+        self.gb5_vbox.addWidget(self.roi_path)
         rightB.addStretch(1)
 
         # 전체 레이아웃 박스에 좌 중 우 박스 배치
@@ -197,25 +206,29 @@ class Form(QWidget):
         end_x = self.view.end.x()
         end_y = self.view.end.y()
         # self.view.mouse_place = e.pos()
-        (self.tL.x, self.tL.y), w, h = self.view.coordinateAdj()
-        self.bR.x = (self.tL.x + w)
-        self.bR.y = (self.tL.y + h)
 
-        # text = 'start_x: {0}, start_y: {1}\nend_x: {2}, end_y : {3}'.format(start_x, start_y, end_x, end_y)
-        self.coord_text = 'topLeft: ( {0}, {1} )\nbottomRight: ( {2}, {3} )'.format(self.tL.x, self.tL.y,
-                                                                                    self.bR.x, self.bR.y)
-        self.lb5.setText(self.coord_text)
-        self.lb5.adjustSize()
+        if self.drawType == 0:  # counting line
+            pass
+        elif self.drawType == 1:  # top_view_point
+            pass
+        elif self.drawType == 2:  # frame_area
+            (self.tL.x, self.tL.y), w, h = self.view.coordinateAdj()
+            self.bR.x = (self.tL.x + w)
+            self.bR.y = (self.tL.y + h)
+            self.coord_text = 'frame_area: ( {0}, {1} ), ( {2}, {3} )'.format(self.tL.x, self.tL.y, self.bR.x, self.bR.y)
+            self.frame_area_lb.setText(self.coord_text)
+            # self.frame_area_lb.adjustSize()
+
 
     def radioClicked(self):
         for i in range(len(self.radiobtns)):
             if self.radiobtns[i].isChecked():
                 self.drawType = i
-                if i == 0:  # 직선
+                if i == 0:  # counting_line
                     self.pencolor = QColor(0, 255, 0)  # Green
-                elif i == 1:  # 곡선
+                elif i == 1:  # top_view
                     self.pencolor = QColor(20, 181, 255)  # Blue
-                elif i == 2:  # 직사각형
+                elif i == 2:  # frame_area
                     self.pencolor = QColor(255, 0, 0)  # Red
                 break
 
@@ -225,6 +238,8 @@ class Form(QWidget):
     # 화면에 표시된거 클리어
     def clear_Clicked(self):
         self.view.scene.clear()
+        while len(self.counting_line_lst):
+            self.counting_line_lst.pop()
 
     # 진정한 의미로 그린것만 지움. 편법사용 x
     def clear_Clicked_drawing(self):
@@ -233,6 +248,8 @@ class Form(QWidget):
             # print(type(i))
             if type(i) is not QGraphicsPixmapItem:
                 self.view.scene.removeItem(i)
+        while len(self.counting_line_lst):
+            self.counting_line_lst.pop()
         # self.display_image(self.sid)
 
     def showColorDlg(self):
@@ -250,6 +267,7 @@ class Form(QWidget):
             # self.brushcolor = color
             # self.brushbtn.setStyleSheet('background-color: {}'.format(color.name()))
 
+    # 사실 의미없음
     def showing_Image(self):
         img = QPixmap('image.png')
         # enhancer = ImageEnhance.Brightness(img)
@@ -290,15 +308,13 @@ class Form(QWidget):
         width, ok = QInputDialog.getInt(self, '', "Enter TopView Width")
         if ok:
             self.top_view.size.width = width
-            self.lb6.setText("TopView_Width: {0}\nTopView_Height: {1}".format(self.top_view.size.width,
-                                                                              self.top_view.size.height))
+            self.TvSize_lb.setText("top_view_size({0}, {1})".format(self.top_view.size.width, self.top_view.size.height))
 
     def getTvHeight(self):
         height, ok = QInputDialog.getInt(self, '', "Enter TopView Height")
         if ok:
             self.top_view.size.height = height
-            self.lb6.setText("TopView_Width: {0}\nTopView_Height: {1}".format(self.top_view.size.width,
-                                                                              self.top_view.size.height))
+            self.TvSize_lb.setText("top_view_size({0}, {1})".format(self.top_view.size.width, self.top_view.size.height))
 
 
 class CView(QGraphicsView):
@@ -333,6 +349,7 @@ class CView(QGraphicsView):
             self.start = e.pos()
             self.end = e.pos()
 
+
     def mouseMoveEvent(self, e):
         # self.mouse_place = e.pos()
         # print(2)
@@ -354,7 +371,7 @@ class CView(QGraphicsView):
             """
             pen = QPen(self.parent().pencolor, 4)
 
-            # drawing Line
+            # counting_line
             if self.parent().drawType == 0:
 
                 # 장면에 그려진 이전 선을 제거
@@ -367,7 +384,7 @@ class CView(QGraphicsView):
                 line = QLineF(self.start.x(), self.start.y(), self.end.x(), self.end.y())
                 self.items.append(self.scene.addLine(line, pen))
 
-            # drawing Curve
+            # top_view
             if self.parent().drawType == 1:
                 path = QPainterPath()
                 path.moveTo(self.start)
@@ -377,7 +394,7 @@ class CView(QGraphicsView):
                 # 시작점을 다시 기존 끝점으로
                 self.start = e.pos()
 
-            # drawing Rectangle
+            # frame_area
             # 일단 이거 좀 고쳐야 할게... 우측에서 좌측으로 안그려짐.
             # 밑에서 위로도 안그려짐.
             # 해결 2020_04_22 15:55
@@ -393,11 +410,16 @@ class CView(QGraphicsView):
                 # tL에 topLeft좌표, rect_w에 너비, rect_h에 높이
                 (self.tL.x, self.tL.y), self.rect_w, self.rect_h = self.coordinateAdj()
 
+                self.parent().frame_area_lb.setText('frame_area: ( {0}, {1} ), ( {2}, {3} )'.format(self.tL.x,
+                                                                                                    self.tL.y,
+                                                                                                    self.tL.x + self.rect_w,
+                                                                                                    self.tL.y + self.rect_h))
+
                 # rect = QRectF(self.start, self.end)
                 rect = QRectF(self.tL.x, self.tL.y, self.rect_w, self.rect_h)
                 self.items.append(self.scene.addRect(rect, pen, brush))
 
-            # drawing Ellipse
+            # test
             if self.parent().drawType == 3:
                 brush = QBrush(self.parent().brushcolor)
 
@@ -413,15 +435,7 @@ class CView(QGraphicsView):
                 # rect = QRectF(self.start, self.end)
                 rect = QRectF(self.tL.x, self.tL.y, self.rect_w, self.rect_h)
                 self.items.append(self.scene.addEllipse(rect, pen, brush))
-            # print("!!")
-            self.parent().lb5.setText('topLeft: ( {0}, {1} )\nbottomRight: ( {2}, {3} )'.format(self.tL.x,
-                                                                                                 self.tL.y,
-                                                                                                 self.tL.x + self.rect_w,
-                                                                                                 self.tL.y + self.rect_h))
-            print('topLeft: ( {0}, {1} )\nbottomRight: ( {2}, {3} )'.format(self.tL.x,
-                                                                            self.tL.y,
-                                                                            self.tL.x + self.rect_w,
-                                                                            self.tL.y + self.rect_h))
+
 
     # 직사각형  대각위치의 좌표 2개 입력받으면 topLeft좌표와 width, height 반환 함수.
     def coordinateAdj(self):
@@ -456,6 +470,16 @@ class CView(QGraphicsView):
 
                 self.items.clear()
                 line = QLineF(self.start.x(), self.start.y(), self.end.x(), self.end.y())
+
+                self.parent().counting_line_lst.append([[self.start.x(), self.start.y()],[self.end.x(), self.end.y()]])
+                print(self.parent().counting_line_lst)
+
+                tmp_text = "["
+                for i in range(len(self.parent().counting_line_lst)):
+                    tmp_text = tmp_text + str(self.parent().counting_line_lst[i]) + ",\n"
+                tmp_text = tmp_text[:-2] + "]"
+                # self.parent().counting_line_text = "counting_line: " + str(self.parent().counting_line_lst)
+                self.parent().counting_line_lb.setText(tmp_text)
 
                 self.scene.addLine(line, pen)
 
