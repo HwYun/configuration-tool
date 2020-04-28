@@ -328,6 +328,7 @@ class Form(QWidget):
             print(fileName)
             self.sid = QPixmap(fileName)
             self.view.display_image(self.sid)
+            self.view.scale_count = 0
 
     def getROI(self):
         fileName, f_type = QFileDialog.getOpenFileName(self, "Select ROI", "",
@@ -642,6 +643,7 @@ class CView(QGraphicsView):
         self.scene.clear()
         print(img.size())
         w, h = img.size().width(), img.size().height()
+
         # self.imgQ = QImage.ImageQt(img)  # we need to hold reference to imgQ, or it will crash
         # pixMap = QPixmap.fromImage(self.imgQ)
         # img.scaled(1280, 720)
@@ -654,6 +656,10 @@ class CView(QGraphicsView):
         self.setCacheMode(QGraphicsView.CacheBackground)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+
+        if w >= 1920 or h >= 1080:
+            for i in range(6):
+                self.scale_down_pixmap()
 
         # self.view.fitInView(QRectF(0, 0, w, h), Qt.KeepAspectRatio)
         # self.view.scene.update()
