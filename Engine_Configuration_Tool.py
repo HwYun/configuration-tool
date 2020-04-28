@@ -54,7 +54,7 @@ class Form(QWidget):
         hbox = QHBoxLayout()
         gb.setLayout(hbox)
 
-        self.clear_btn = QPushButton('사진 불러오기')
+        self.clear_btn = QPushButton('Open Image')
         self.clear_btn.clicked.connect(self.openFileNameDialog)
         hbox.addWidget(self.clear_btn)
 
@@ -135,7 +135,7 @@ class Form(QWidget):
         leftB.addWidget(self.ROI_input_btn)
 
         #  그룹박스 4
-        gb = QGroupBox('지우개')
+        gb = QGroupBox()
         leftB.addWidget(gb)
 
         vbox = QVBoxLayout()
@@ -166,7 +166,7 @@ class Form(QWidget):
         # 우측 레이아웃 박스 구성
 
         # 그룹박스 5
-        self.gb5 = QGroupBox('각종 속성 값')
+        self.gb5 = QGroupBox('속성 값')
         rightB.addWidget(self.gb5)
 
         self.gb5_vbox = QVBoxLayout()
@@ -268,6 +268,8 @@ class Form(QWidget):
             self.counting_line_lst.pop()
         while len(self.top_view.pts):
             self.top_view.pts.pop()
+        while len(self.top_view_output.pts):
+            self.top_view_output.pts.pop()
         self.top_view.index = 0
         self.counting_line_lb.setText("counting_line: []")
         self.frame_area_lb.setText('frame_area: ( {0}, {1} ), ( {2}, {3} )'.format(0.0, 0.0, 0.0, 0.0))
@@ -288,6 +290,8 @@ class Form(QWidget):
             self.counting_line_lst.pop()
         while len(self.top_view.pts):
             self.top_view.pts.pop()
+        while len(self.top_view_output.pts):
+            self.top_view_output.pts.pop()
         self.top_view.index = 0
         self.counting_line_lb.setText("counting_line: []")
         self.frame_area_lb.setText('frame_area: ( {0}, {1} ), ( {2}, {3} )'.format(0.0, 0.0, 0.0, 0.0))
@@ -327,8 +331,10 @@ class Form(QWidget):
         if fileName:
             print(fileName)
             self.sid = QPixmap(fileName)
-            self.view.display_image(self.sid)
             self.view.scale_count = 0
+            self.view.display_image(self.sid)
+            self.clear_Clicked_drawing()
+
 
     def getROI(self):
         fileName, f_type = QFileDialog.getOpenFileName(self, "Select ROI", "",
@@ -363,6 +369,8 @@ class CView(QGraphicsView):
 
         self.scale_count = 0
 
+        self.item_type = -1 # 직전에 그려진 item type
+
         self.items = []
 
         self.start = QPointF()
@@ -394,7 +402,8 @@ class CView(QGraphicsView):
             tmp_pts = self.start
             # print(tmp_idx)
             tmp_text = "top_view: \n["
-            if self.parent().drawType == 1 and self.parent().top_view.index < 4:  # top_view
+            if self.parent().drawType == 1 and tmp_idx < 4:  # top_view
+                # print("!!")
                 if self.scale_count > 0:
                     for i in range(self.scale_count):
                         tmp_pts = 0.90909 * tmp_pts
@@ -406,8 +415,7 @@ class CView(QGraphicsView):
                 self.parent().top_view.pts.append(self.start)
 
                 for i in range(len(self.parent().top_view_output.pts)):
-                    tmp_text = tmp_text + str([self.parent().top_view_output.pts[i].x(),
-                                               self.parent().top_view_output.pts[i].y()]) + ",\n"
+                    tmp_text = tmp_text + str([self.parent().top_view_output.pts[i].x(), self.parent().top_view_output.pts[i].y()]) + ",\n"
                 tmp_text = tmp_text[:-2] + "]"
                 self.parent().Tvpoint_lb.setText(tmp_text)
 
@@ -430,6 +438,7 @@ class CView(QGraphicsView):
                     self.items.append(self.scene.addLine(line, pen))
 
                 self.parent().top_view.index = self.parent().top_view.index + 1
+                self.item_type = 1
 
     def mouseMoveEvent(self, e):
         # self.mouse_place = e.pos()
@@ -456,7 +465,7 @@ class CView(QGraphicsView):
             if self.parent().drawType == 0:
 
                 # 장면에 그려진 이전 선을 제거
-                if len(self.items) > 0:
+                if len(self.items) > 0 and self.item_type != 1:
                     self.scene.removeItem(self.items[-1])
                     del (self.items[-1])
 
@@ -464,6 +473,7 @@ class CView(QGraphicsView):
                 # 현재 선 추가
                 line = QLineF(self.start.x(), self.start.y(), self.end.x(), self.end.y())
                 self.items.append(self.scene.addLine(line, pen))
+                self.item_type = 0
 
             # top_view
             """
@@ -485,7 +495,7 @@ class CView(QGraphicsView):
 
                 # pen = QPen(QColor(0, 255, 0), 3)
 
-                if len(self.items) > 0:
+                if len(self.items) > 0 and self.item_type != 1:
                     self.scene.removeItem(self.items[-1])
                     del (self.items[-1])
 
@@ -498,6 +508,7 @@ class CView(QGraphicsView):
                 # rect = QRectF(self.start, self.end)
                 rect = QRectF(self.tL.x, self.tL.y, self.rect_w, self.rect_h)
                 self.items.append(self.scene.addRect(rect, pen, brush))
+                self.item_type = 2
 
                 if self.scale_count != 0:  # scale을 했음.
                     if self.scale_count > 0:  # 기존보다 확대.
@@ -606,7 +617,7 @@ class CView(QGraphicsView):
                 # print(self.parent().counting_line_lst)
 
                 for j in range(len(self.parent().counting_line_lst)):
-                    print(self.parent().counting_line_lst[j])
+                    # print(self.parent().counting_line_lst[j])
                     self.parent().counting_line_lst[j][0][0] = int(self.parent().counting_line_lst[j][0][0])
                     self.parent().counting_line_lst[j][0][1] = int(self.parent().counting_line_lst[j][0][1])
                     self.parent().counting_line_lst[j][1][0] = int(self.parent().counting_line_lst[j][1][0])
@@ -657,19 +668,38 @@ class CView(QGraphicsView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 
+        chk = max(w/16, h/9)
+        chk = int(chk/10)
+        if chk > 6:
+            for i in range(chk-6):
+               self.scale_down_pixmap()
+        """
         if w >= 1920 or h >= 1080:
             for i in range(6):
                 self.scale_down_pixmap()
+        elif w >= 1600 or h >= 900:
+            for i in range(5):
+                self.scale_down_pixmap()
+        elif w >= 1377 or h >= 768:
+            for i in range(4):
+                self.scale_down_pixmap()
+        elif w >= 1280 or h >= 720:
+            for i in range(3):
+                self.scale_down_pixmap()
+        """
+
 
         # self.view.fitInView(QRectF(0, 0, w, h), Qt.KeepAspectRatio)
         # self.view.scene.update()
 
     def scale_up_pixmap(self):
         self.scale_count = self.scale_count + 1
+        print(self.scale_count)
         self.item.setScale(1.1 * self.item.scale())
 
     def scale_down_pixmap(self):
         self.scale_count = self.scale_count - 1
+        print(self.scale_count)
         self.item.setScale(0.90909 * self.item.scale())
 
 
