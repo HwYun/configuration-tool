@@ -35,6 +35,7 @@ class Form(QWidget):
 
         # 탑 뷰
         self.top_view = TopView()
+        self.top_view_output = TopView()
 
         self.view = CView(self)
         # 전체 레이아웃 박스
@@ -148,6 +149,14 @@ class Form(QWidget):
         self.clear_btn.clicked.connect(self.clear_Clicked)
         vbox.addWidget(self.clear_btn)
 
+        self.scale_up_btn = QPushButton('+')
+        self.scale_up_btn.clicked.connect(self.view.scale_up_pixmap)
+        vbox.addWidget(self.scale_up_btn)
+
+        self.scale_down_btn = QPushButton('-')
+        self.scale_down_btn.clicked.connect(self.view.scale_down_pixmap)
+        vbox.addWidget(self.scale_down_btn)
+
         leftB.addStretch(1)
 
         # 중앙 레이아웃 박스에 그래픽 뷰 추가
@@ -169,7 +178,8 @@ class Form(QWidget):
 
         self.setMouseTracking(True)
 
-        self.Tvpoint_text = "top_view_point: [[{0}, {1}], [{2}, {3}], [{4}, {5}], [{6}, {7}]]".format(0, 0, 0, 0, 0, 0, 0, 0)
+        self.Tvpoint_text = "top_view_point: [[{0}, {1}], [{2}, {3}], [{4}, {5}], [{6}, {7}]]".format(0, 0, 0, 0, 0, 0,
+                                                                                                      0, 0)
         self.Tvpoint_lb = QLabel(self.Tvpoint_text, self)
         self.gb5_vbox.addWidget(self.Tvpoint_lb)
 
@@ -213,10 +223,28 @@ class Form(QWidget):
             (self.tL.x, self.tL.y), w, h = self.view.coordinateAdj()
             self.bR.x = (self.tL.x + w)
             self.bR.y = (self.tL.y + h)
-            self.coord_text = 'frame_area: ( {0}, {1} ), ( {2}, {3} )'.format(self.tL.x, self.tL.y, self.bR.x, self.bR.y)
+
+            # print(self.view.scale_count)
+
+            if self.view.scale_count != 0:  # scale을 했음.
+                if self.view.scale_count > 0:  # 기존보다 확대.
+                    for i in range(self.view.scale_count):
+                        self.tL.x = 0.90909 * self.tL.x
+                        self.tL.y = 0.90909 * self.tL.y
+                        self.bR.x = 0.90909 * self.bR.x
+                        self.bR.y = 0.90909 * self.bR.y
+                        # print(self.tL, self.bR)
+                else:  # 기존보다 축소
+                    for i in range(self.view.scale_count, 0):
+                        self.tL.x = 1.1 * self.tL.x
+                        self.tL.y = 1.1 * self.tL.y
+                        self.bR.x = 1.1 * self.bR.x
+                        self.bR.y = 1.1 * self.bR.y
+                        # print(self.tL, self.bR)
+
+            self.coord_text = 'frame_area: ( %4d, %4d ), ( %4d, %4d )' % (self.tL.x, self.tL.y, self.bR.x, self.bR.y)
             self.frame_area_lb.setText(self.coord_text)
             # self.frame_area_lb.adjustSize()
-
 
     def radioClicked(self):
         for i in range(len(self.radiobtns)):
@@ -246,6 +274,9 @@ class Form(QWidget):
         self.Tvpoint_lb.setText("top_view_point: [[{0}, {1}], [{2}, {3}],"
                                 " [{4}, {5}], [{6}, {7}]]".format(0, 0, 0, 0, 0, 0, 0, 0))
 
+        self.view.scale_count = 0
+        self.view.line_num = 0
+
     # 진정한 의미로 그린것만 지움. 편법사용 x
     def clear_Clicked_drawing(self):
         for i in self.view.scene.items():
@@ -263,6 +294,7 @@ class Form(QWidget):
         self.Tvpoint_lb.setText("top_view_point: [[{0}, {1}], [{2}, {3}],"
                                 " [{4}, {5}], [{6}, {7}]]".format(0, 0, 0, 0, 0, 0, 0, 0))
         # self.display_image(self.sid)
+        self.view.line_num = 0
 
     def showColorDlg(self):
         # 색상 대화상자 생성
@@ -289,44 +321,34 @@ class Form(QWidget):
             # QCoreApplication.processEvents()  # let Qt do his work
             # time.sleep(0.5)
 
-    def display_image(self, img):
-        self.view.scene.clear()
-        print(img.size())
-        w, h = img.size().width(), img.size().height()
-        # self.imgQ = QImage.ImageQt(img)  # we need to hold reference to imgQ, or it will crash
-        # pixMap = QPixmap.fromImage(self.imgQ)
-        # img.scaled(1280, 720)
-        self.view.scene.addPixmap(img)
-
-        # self.view.fitInView(QRectF(0, 0, w, h), Qt.KeepAspectRatio)
-        # self.view.scene.update()
-
     def openFileNameDialog(self):
         fileName, f_type = QFileDialog.getOpenFileName(self, "불러올 이미지를 선택하세요", "",
                                                        "All Files(*);;Python Files (*.py)")
         if fileName:
             print(fileName)
             self.sid = QPixmap(fileName)
-            self.display_image(self.sid)
+            self.view.display_image(self.sid)
 
     def getROI(self):
         fileName, f_type = QFileDialog.getOpenFileName(self, "Select ROI", "",
                                                        "All Files(*);;Python Files (*.py)")
         if fileName:
             self.ROI = fileName
-            self.roi_path.setText("ROI\n"+fileName)
+            self.roi_path.setText("ROI\n" + fileName)
 
     def getTvWidth(self):
         width, ok = QInputDialog.getInt(self, '', "Enter TopView Width")
         if ok:
             self.top_view.size.width = width
-            self.TvSize_lb.setText("top_view_size({0}, {1})".format(self.top_view.size.width, self.top_view.size.height))
+            self.top_view_output.size.width = width
+            self.TvSize_lb.setText("top_view_size( %4d, %4d )" % (self.top_view.size.width, self.top_view.size.height))
 
     def getTvHeight(self):
         height, ok = QInputDialog.getInt(self, '', "Enter TopView Height")
         if ok:
             self.top_view.size.height = height
-            self.TvSize_lb.setText("top_view_size({0}, {1})".format(self.top_view.size.width, self.top_view.size.height))
+            self.top_view_output.size.height = height
+            self.TvSize_lb.setText("top_view_size( %4d, %4d )" % (self.top_view.size.width, self.top_view.size.height))
 
 
 class CView(QGraphicsView):
@@ -338,12 +360,17 @@ class CView(QGraphicsView):
         self.scene = QGraphicsScene()
         self.setScene(self.scene)
 
+        self.scale_count = 0
+
         self.items = []
 
         self.start = QPointF()
         self.end = QPointF()
 
+        self.line_num = 0
+
         self.tL = QPointF()
+        self.bR = QPointF()
         self.rect_w = 0.0
         self.rect_h = 0.0
 
@@ -363,13 +390,23 @@ class CView(QGraphicsView):
 
             # top_view 점찍기.
             tmp_idx = self.parent().top_view.index
-            print(tmp_idx)
+            tmp_pts = self.start
+            # print(tmp_idx)
             tmp_text = "top_view: \n["
             if self.parent().drawType == 1 and self.parent().top_view.index < 4:  # top_view
+                if self.scale_count > 0:
+                    for i in range(self.scale_count):
+                        tmp_pts = 0.90909 * tmp_pts
+                elif self.scale_count < 0:
+                    for i in range(self.scale_count, 0):
+                        tmp_pts = 1.1 * tmp_pts
+
+                self.parent().top_view_output.pts.append(tmp_pts)
                 self.parent().top_view.pts.append(self.start)
-                for i in range(len(self.parent().top_view.pts)):
-                    tmp_text = tmp_text + str([self.parent().top_view.pts[i].x(),
-                                               self.parent().top_view.pts[i].y()]) + ",\n"
+
+                for i in range(len(self.parent().top_view_output.pts)):
+                    tmp_text = tmp_text + str([self.parent().top_view_output.pts[i].x(),
+                                               self.parent().top_view_output.pts[i].y()]) + ",\n"
                 tmp_text = tmp_text[:-2] + "]"
                 self.parent().Tvpoint_lb.setText(tmp_text)
 
@@ -392,7 +429,6 @@ class CView(QGraphicsView):
                     self.items.append(self.scene.addLine(line, pen))
 
                 self.parent().top_view.index = self.parent().top_view.index + 1
-
 
     def mouseMoveEvent(self, e):
         # self.mouse_place = e.pos()
@@ -454,16 +490,34 @@ class CView(QGraphicsView):
 
                 # tL에 topLeft좌표, rect_w에 너비, rect_h에 높이
                 (self.tL.x, self.tL.y), self.rect_w, self.rect_h = self.coordinateAdj()
+                self.bR.x = (self.tL.x + self.rect_w)
+                self.bR.y = (self.tL.y + self.rect_h)
 
-                self.parent().frame_area_lb.setText('frame_area: ( {0}, {1} ), ( {2}, {3} )'.format(self.tL.x,
-                                                                                                    self.tL.y,
-                                                                                                    self.tL.x + self.rect_w,
-                                                                                                    self.tL.y + self.rect_h))
-
+                # print(self.view.scale_count)
                 # rect = QRectF(self.start, self.end)
                 rect = QRectF(self.tL.x, self.tL.y, self.rect_w, self.rect_h)
                 self.items.append(self.scene.addRect(rect, pen, brush))
 
+                if self.scale_count != 0:  # scale을 했음.
+                    if self.scale_count > 0:  # 기존보다 확대.
+                        for i in range(self.scale_count):
+                            self.tL.x = 0.90909 * self.tL.x
+                            self.tL.y = 0.90909 * self.tL.y
+                            self.bR.x = 0.90909 * self.bR.x
+                            self.bR.y = 0.90909 * self.bR.y
+                            # print(self.tL, self.bR)
+                    else:  # 기존보다 축소
+                        for i in range(self.scale_count, 0):
+                            self.tL.x = 1.1 * self.tL.x
+                            self.tL.y = 1.1 * self.tL.y
+                            self.bR.x = 1.1 * self.bR.x
+                            self.bR.y = 1.1 * self.bR.y
+                            # print(self.tL, self.bR)
+
+                self.parent().frame_area_lb.setText('frame_area: ( %4d, %4d ), ( %4d, %4d )' % (self.tL.x,
+                                                                                                self.tL.y,
+                                                                                                self.bR.x,
+                                                                                                self.bR.y))
             # test
             """
             if self.parent().drawType == 3:
@@ -482,7 +536,6 @@ class CView(QGraphicsView):
                 rect = QRectF(self.tL.x, self.tL.y, self.rect_w, self.rect_h)
                 self.items.append(self.scene.addEllipse(rect, pen, brush))
             """
-
 
     # 직사각형  대각위치의 좌표 2개 입력받으면 topLeft좌표와 width, height 반환 함수.
     def coordinateAdj(self):
@@ -513,13 +566,50 @@ class CView(QGraphicsView):
             """
             pen = QPen(self.parent().pencolor, 3)
 
-            if self.parent().drawType == 0:
+            if self.parent().drawType == 0:  # counting_line
 
                 self.items.clear()
                 line = QLineF(self.start.x(), self.start.y(), self.end.x(), self.end.y())
 
-                self.parent().counting_line_lst.append([[self.start.x(), self.start.y()],[self.end.x(), self.end.y()]])
-                print(self.parent().counting_line_lst)
+                self.parent().counting_line_lst.append([[self.start.x(), self.start.y()], [self.end.x(), self.end.y()]])
+
+                if self.scale_count != 0:  # scale을 했음.
+                    if self.scale_count > 0:  # 기존보다 확대.
+                        for i in range(self.scale_count):
+                            self.parent().counting_line_lst[self.line_num][0][0] = 0.90909 *\
+                                                                                   self.parent().counting_line_lst[
+                                                                                       self.line_num][0][0]
+                            self.parent().counting_line_lst[self.line_num][0][1] = 0.90909 * \
+                                                                                   self.parent().counting_line_lst[
+                                                                                       self.line_num][0][1]
+                            self.parent().counting_line_lst[self.line_num][1][0] = 0.90909 * \
+                                                                                   self.parent().counting_line_lst[
+                                                                                       self.line_num][1][0]
+                            self.parent().counting_line_lst[self.line_num][1][1] = 0.90909 * \
+                                                                                   self.parent().counting_line_lst[
+                                                                                       self.line_num][1][1]
+                    else:  # 기존보다 축소
+                        for i in range(self.scale_count, 0):
+                            self.parent().counting_line_lst[self.line_num][0][0] = 1.1 * \
+                                                                                   self.parent().counting_line_lst[
+                                                                                       self.line_num][0][0]
+                            self.parent().counting_line_lst[self.line_num][0][1] = 1.1 * \
+                                                                                   self.parent().counting_line_lst[
+                                                                                       self.line_num][0][1]
+                            self.parent().counting_line_lst[self.line_num][1][0] = 1.1 * \
+                                                                                   self.parent().counting_line_lst[
+                                                                                       self.line_num][1][0]
+                            self.parent().counting_line_lst[self.line_num][1][1] = 1.1 * \
+                                                                                   self.parent().counting_line_lst[
+                                                                                       self.line_num][1][1]
+                # print(self.parent().counting_line_lst)
+
+                for j in range(len(self.parent().counting_line_lst)):
+                    print(self.parent().counting_line_lst[j])
+                    self.parent().counting_line_lst[j][0][0] = int(self.parent().counting_line_lst[j][0][0])
+                    self.parent().counting_line_lst[j][0][1] = int(self.parent().counting_line_lst[j][0][1])
+                    self.parent().counting_line_lst[j][1][0] = int(self.parent().counting_line_lst[j][1][0])
+                    self.parent().counting_line_lst[j][1][1] = int(self.parent().counting_line_lst[j][1][1])
 
                 tmp_text = "counting_line: \n["
                 for i in range(len(self.parent().counting_line_lst)):
@@ -529,6 +619,7 @@ class CView(QGraphicsView):
                 self.parent().counting_line_lb.setText(tmp_text)
 
                 self.scene.addLine(line, pen)
+                self.line_num = self.line_num + 1
 
             elif self.parent().drawType == 2:
 
@@ -546,6 +637,34 @@ class CView(QGraphicsView):
                 self.items.clear()
                 rect = QRectF(self.start, self.end)
                 self.scene.addEllipse(rect, pen, brush)
+
+    def display_image(self, img):
+        self.scene.clear()
+        print(img.size())
+        w, h = img.size().width(), img.size().height()
+        # self.imgQ = QImage.ImageQt(img)  # we need to hold reference to imgQ, or it will crash
+        # pixMap = QPixmap.fromImage(self.imgQ)
+        # img.scaled(1280, 720)
+        # self.view.scene.addPixmap(img)
+        self.item = self.scene.addPixmap(img)
+
+        self.item.setTransformOriginPoint(QPointF(0, 0))
+
+        self.setScene(self.scene)
+        self.setCacheMode(QGraphicsView.CacheBackground)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+
+        # self.view.fitInView(QRectF(0, 0, w, h), Qt.KeepAspectRatio)
+        # self.view.scene.update()
+
+    def scale_up_pixmap(self):
+        self.scale_count = self.scale_count + 1
+        self.item.setScale(1.1 * self.item.scale())
+
+    def scale_down_pixmap(self):
+        self.scale_count = self.scale_count - 1
+        self.item.setScale(0.90909 * self.item.scale())
 
 
 if __name__ == "__main__":
