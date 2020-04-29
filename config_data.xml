@@ -1,0 +1,26 @@
+<cctvs>
+    <cctv id="1">
+        <frame_area>((0, 0), (0, 0))</frame_area>
+        <top_view_point>[[0, 0], [0, 0], [0, 0], [0, 0]]</top_view_point>
+        <top_view_size>(0, 0)</top_view_size>
+        <counting_line>[[[[0, 0], [0, 0]], True]]</counting_line>
+        <ROI_mask>" "</ROI_mask>
+        <HOI_self>" "</HOI_self>
+    </cctv>
+    <cctv id="2">
+        <frame_area>((0, 0), (0, 0))</frame_area>
+        <top_view_point>[[0, 0], [0, 0], [0, 0], [0, 0]]</top_view_point>
+        <top_view_size>(0, 0)</top_view_size>
+        <counting_line>[[[[0, 0], [0, 0]], True]]</counting_line>
+        <ROI_mask>" "</ROI_mask>
+        <HOI_self>" "</HOI_self>
+    </cctv>
+    <cctv id="2">
+        <frame_area>((0, 0), (0, 0))</frame_area>
+        <top_view_point>[[0, 0], [0, 0], [0, 0], [0, 0]]</top_view_point>
+        <top_view_size>(0, 0)</top_view_size>
+        <counting_line>[[[[0, 0], [0, 0]], True]]</counting_line>
+        <ROI_mask>" "</ROI_mask>
+        <HOI_self>" "</HOI_self>
+    </cctv>
+</cctvs>

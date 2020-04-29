@@ -4,6 +4,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
+import xml.etree.ElementTree as ET
+
 import time
 
 
@@ -193,6 +195,20 @@ class Form(QWidget):
 
         self.roi_path = QLabel("ROI\n", self)
         self.gb5_vbox.addWidget(self.roi_path)
+
+        """
+        self.tmp_vbox = QVBoxLayout()
+        rightB.addWidget(self.tmp_vbox)
+
+        self.tmp_vbox.addStretch(1)
+        
+        self.save_vbox = QVBoxLayout()
+        rightB.addWidget(self.save_vbox)
+        """
+        self.save_btn = QPushButton('Save')
+        self.save_btn.clicked.connect(self.clear_Clicked_drawing)
+        rightB.addWidget(self.save_btn)
+
         rightB.addStretch(1)
 
         # 전체 레이아웃 박스에 좌 중 우 박스 배치
@@ -508,6 +524,7 @@ class CView(QGraphicsView):
                 # rect = QRectF(self.start, self.end)
                 rect = QRectF(self.tL.x, self.tL.y, self.rect_w, self.rect_h)
                 self.items.append(self.scene.addRect(rect, pen, brush))
+
                 self.item_type = 2
 
                 if self.scale_count != 0:  # scale을 했음.
@@ -641,14 +658,7 @@ class CView(QGraphicsView):
                 self.items.clear()
                 rect = QRectF(self.start, self.end)
                 self.scene.addRect(rect, pen, brush)
-
-            elif self.parent().drawType == 3:
-
-                brush = QBrush(self.parent().brushcolor)
-
-                self.items.clear()
-                rect = QRectF(self.start, self.end)
-                self.scene.addEllipse(rect, pen, brush)
+        print(self.scene.items())
 
     def display_image(self, img):
         self.scene.clear()
@@ -669,7 +679,7 @@ class CView(QGraphicsView):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 
         chk = max(w/16, h/9)
-        chk = int(chk/10)
+        chk = int(chk/12)
         if chk > 6:
             for i in range(chk-6):
                self.scale_down_pixmap()
