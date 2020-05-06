@@ -34,7 +34,8 @@ class Form(QWidget):
         self.bR = QPointF()  # bottomRight
 
         # frame area
-        self.frame_area = tuple()
+        self.frame_area = list()
+        self.frame_area_output = tuple()
 
         # top view
         self.top_view = TopView()
@@ -42,6 +43,7 @@ class Form(QWidget):
 
         # counting line
         self.counting_line_lst = []
+        self.counting_line_lst_calc = []
 
         # ROI mask
         self.ROI = ""
@@ -106,7 +108,7 @@ class Form(QWidget):
         lb = QLabel('선색상')
         grid.addWidget(lb, 1, 0)
 
-        self.pencolor = QColor(0, 255, 0)
+        self.pencolor = QColor(0, 255, 0, 192)
         self.penbtn = QPushButton()
         self.penbtn.setStyleSheet('background-color: rgb(0, 0, 0')
         self.penbtn.clicked.connect(self.showColorDlg)
@@ -250,7 +252,7 @@ class Form(QWidget):
         elif self.drawType == 1:  # top_view_point
             pass
         elif self.drawType == 2:  # frame_area
-            (self.tL.x, self.tL.y), w, h = self.view.coordinateAdj()
+            (self.tL.x, self.tL.y), w, h = self.view.coordinateAdj(start_x, start_y, end_x, end_y)
             self.bR.x = (self.tL.x + w)
             self.bR.y = (self.tL.y + h)
 
@@ -281,11 +283,11 @@ class Form(QWidget):
             if self.radiobtns[i].isChecked():
                 self.drawType = i
                 if i == 0:  # counting_line
-                    self.pencolor = QColor(0, 255, 0)  # Green
+                    self.pencolor = QColor(0, 255, 0, 192)  # Green
                 elif i == 1:  # top_view
-                    self.pencolor = QColor(20, 181, 255)  # Blue
+                    self.pencolor = QColor(20, 181, 255, 192)  # Blue
                 elif i == 2:  # frame_area
-                    self.pencolor = QColor(255, 0, 0)  # Red
+                    self.pencolor = QColor(255, 0, 0, 192)  # Red
                 break
 
     def checkClicked(self):
@@ -319,11 +321,15 @@ class Form(QWidget):
                 self.view.scene.removeItem(i)
         while len(self.counting_line_lst):
             self.counting_line_lst.pop()
+        while len(self.counting_line_lst_calc):
+            self.counting_line_lst_calc.pop()
         while len(self.top_view.pts):
             self.top_view.pts.pop()
         while len(self.top_view_output.pts):
             self.top_view_output.pts.pop()
         self.top_view.index = 0
+        self.frame_area = [[0, 0], [0, 0]]
+        self.frame_area_output = ((0, 0), (0, 0))
         self.counting_line_lb.setText("counting_line: []")
         self.frame_area_lb.setText('frame_area: ( {0}, {1} ), ( {2}, {3} )'.format(0.0, 0.0, 0.0, 0.0))
         self.Tvpoint_lb.setText("top_view_point: [[{0}, {1}], [{2}, {3}],"
@@ -403,7 +409,7 @@ class Form(QWidget):
 
             for cctv in root.iter('cctv'):
                 if self.camera_id == int(cctv.get('id')):
-                    new_frame_area = self.frame_area
+                    new_frame_area = self.frame_area_output
                     cctv.find('frame_area').text = str(new_frame_area)
                     # cctv.find('frame_area').set('updated', 'yes')
 
@@ -436,10 +442,6 @@ class Form(QWidget):
             if ok:
                 self.camera_id = tmp_id
                 self.camera_id_lb.setText("Camera_ID: %d" % self.camera_id)
-
-
-
-
 
 class CView(QGraphicsView):
 
@@ -561,7 +563,7 @@ class CView(QGraphicsView):
                     self.scene.removeItem(self.items[-1])
                     del (self.items[-1])
 
-                # (self.tL.x, self.tL.y), self.rect_w, self.rect_h = self.coordinateAdj()
+
                 # 현재 선 추가
                 line = QLineF(self.start.x(), self.start.y(), self.end.x(), self.end.y())
                 self.items.append(self.scene.addLine(line, pen))
@@ -592,9 +594,13 @@ class CView(QGraphicsView):
                     del (self.items[-1])
 
                 # tL에 topLeft좌표, rect_w에 너비, rect_h에 높이
-                (self.tL.x, self.tL.y), self.rect_w, self.rect_h = self.coordinateAdj()
+                (self.tL.x, self.tL.y), self.rect_w, self.rect_h = self.coordinateAdj(self.start.x(), self.start.y(),
+                                                                                      self.end.x(), self.end.y())
                 self.bR.x = (self.tL.x + self.rect_w)
                 self.bR.y = (self.tL.y + self.rect_h)
+
+                self.parent().frame_area = [[int(self.tL.x), int(self.tL.y)],
+                                            [int(self.bR.x), int(self.bR.y)]]
 
                 # print(self.view.scale_count)
                 # rect = QRectF(self.start, self.end)
@@ -623,7 +629,9 @@ class CView(QGraphicsView):
                                                                                                 self.tL.y,
                                                                                                 self.bR.x,
                                                                                                 self.bR.y))
-                self.parent().frame_area = ((int(self.tL.x), int(self.tL.y)), (int(self.bR.x), int(self.bR.y)))
+                self.parent().frame_area_output = ((int(self.tL.x), int(self.tL.y)),
+                                                   (int(self.bR.x), int(self.bR.y)))
+
 
             # test
             """
@@ -645,20 +653,15 @@ class CView(QGraphicsView):
             """
 
     # 직사각형  대각위치의 좌표 2개 입력받으면 topLeft좌표와 width, height 반환 함수.
-    def coordinateAdj(self):
-        self.s_x = self.start.x()
-        self.s_y = self.start.y()
-        self.e_x = self.end.x()
-        self.e_y = self.end.y()
-
-        if self.s_x < self.e_x and self.s_y < self.e_y:
-            return (self.s_x, self.s_y), self.e_x - self.s_x, self.e_y - self.s_y
-        elif self.s_x < self.e_x and self.s_y > self.e_y:
-            return (self.s_x, self.e_y), self.e_x - self.s_x, self.s_y - self.e_y
-        elif self.s_x > self.e_x and self.s_y < self.e_y:
-            return (self.e_x, self.s_y), self.s_x - self.e_x, self.e_y - self.s_y
+    def coordinateAdj(self, s_x, s_y, e_x, e_y):
+        if s_x < e_x and s_y < e_y:
+            return (s_x, s_y), e_x - s_x, e_y - s_y
+        elif s_x < e_x and s_y > e_y:
+            return (s_x, e_y), e_x - s_x, s_y - e_y
+        elif s_x > e_x and s_y < e_y:
+            return (e_x, s_y), s_x - e_x, e_y - s_y
         else:
-            return (self.e_x, self.e_y), self.s_x - self.e_x, self.s_y - self.e_y
+            return (e_x, e_y), s_x - e_x, s_y - e_y
 
     # 곡선 제외한 그리기 모드에서 마우스 클릭 해지 시 완성된 그림을 그리는 방식.
     # 직선, 사각형, 원의 경우 클릭 해지 시 기존에 그려진 것들 삭제하고 최종적으로 다시 한번 그리는 방식.
@@ -679,6 +682,8 @@ class CView(QGraphicsView):
                 line = QLineF(self.start.x(), self.start.y(), self.end.x(), self.end.y())
 
                 self.parent().counting_line_lst.append([[self.start.x(), self.start.y()], [self.end.x(), self.end.y()]])
+                self.parent().counting_line_lst_calc.append([[self.start.x(), self.start.y()],
+                                                             [self.end.x(), self.end.y()]])
 
                 if self.scale_count != 0:  # scale을 했음.
                     if self.scale_count > 0:  # 기존보다 확대.
@@ -735,7 +740,8 @@ class CView(QGraphicsView):
 
                 self.items.clear()
                 rect = QRectF(self.start, self.end)
-                self.scene.addRect(rect, pen, brush)
+                # self.scene.addRect(rect, pen, brush)
+                self.items.append(self.scene.addRect(rect, pen, brush))
                 self.frame_area_drawing_chk = True
         print(self.scene.items())
 
@@ -785,11 +791,79 @@ class CView(QGraphicsView):
         self.scale_count = self.scale_count + 1
         print(self.scale_count)
         self.item.setScale(1.1 * self.item.scale())
+        self.scale_item(1.1)
 
     def scale_down_pixmap(self):
         self.scale_count = self.scale_count - 1
         print(self.scale_count)
         self.item.setScale(0.90909 * self.item.scale())
+        self.scale_item(0.90909)
+
+    def scale_item(self, coefficient):
+        # Remove All Drawing
+        for i in self.scene.items():
+            if type(i) is not QGraphicsPixmapItem:
+                self.scene.removeItem(i)
+
+        brush = QBrush(self.parent().brushcolor)
+
+        # counting_line
+        if len(self.parent().counting_line_lst_calc):
+            pen = QPen(QColor(0, 255, 0, 192), 4)
+            for i in range(self.line_num):
+                self.parent().counting_line_lst_calc[i][0][0] = coefficient * self.parent().counting_line_lst_calc[i][0][0]
+                self.parent().counting_line_lst_calc[i][0][1] = coefficient * self.parent().counting_line_lst_calc[i][0][1]
+                self.parent().counting_line_lst_calc[i][1][0] = coefficient * self.parent().counting_line_lst_calc[i][1][0]
+                self.parent().counting_line_lst_calc[i][1][1] = coefficient * self.parent().counting_line_lst_calc[i][1][1]
+                tmp_start_x = self.parent().counting_line_lst_calc[i][0][0]
+                tmp_start_y = self.parent().counting_line_lst_calc[i][0][1]
+                tmp_end_x = self.parent().counting_line_lst_calc[i][1][0]
+                tmp_end_y = self.parent().counting_line_lst_calc[i][1][1]
+                line = QLineF(tmp_start_x, tmp_start_y, tmp_end_x, tmp_end_y)
+                self.items.append(self.scene.addLine(line, pen))
+                self.item_type = 0
+
+        # top view
+        pen = QPen(QColor(20, 181, 255, 192), 4)
+        tmp_idx = self.parent().top_view.index
+        if tmp_idx > 0:
+            for j in range(tmp_idx):
+                self.parent().top_view.pts[j] = coefficient * self.parent().top_view.pts[j]
+            for i in range(tmp_idx):
+                if i > 0:
+                    line = QLineF(self.parent().top_view.pts[i - 1].x(),
+                                  self.parent().top_view.pts[i - 1].y(),
+                                  self.parent().top_view.pts[i].x(),
+                                  self.parent().top_view.pts[i].y())
+                    self.items.append(self.scene.addLine(line, pen))
+                if i == 3:
+                    line = QLineF(self.parent().top_view.pts[0].x(),
+                                  self.parent().top_view.pts[0].y(),
+                                  self.parent().top_view.pts[3].x(),
+                                  self.parent().top_view.pts[3].y())
+                    self.items.append(self.scene.addLine(line, pen))
+                else:
+                    line = QLineF(self.parent().top_view.pts[i].x(), self.parent().top_view.pts[i].y(),
+                                  self.parent().top_view.pts[i].x(), self.parent().top_view.pts[i].y())
+                    self.items.append(self.scene.addLine(line, pen))
+            self.item_type = 1
+
+        # frame area
+        pen = QPen(QColor(255, 0, 0, 192), 4)
+        if self.frame_area_drawing_chk:
+            self.parent().frame_area[0][0] = coefficient * self.parent().frame_area[0][0]
+            self.parent().frame_area[0][1] = coefficient * self.parent().frame_area[0][1]
+            self.parent().frame_area[1][0] = coefficient * self.parent().frame_area[1][0]
+            self.parent().frame_area[1][1] = coefficient * self.parent().frame_area[1][1]
+
+            tmp_start_x = self.parent().frame_area[0][0]
+            tmp_start_y = self.parent().frame_area[0][1]
+            tmp_end_x = self.parent().frame_area[1][0]
+            tmp_end_y = self.parent().frame_area[1][1]
+
+            (tmp_x, tmp_y), tmp_w, tmp_h = self.coordinateAdj(tmp_start_x, tmp_start_y, tmp_end_x, tmp_end_y)
+            rect = QRectF(tmp_x, tmp_y, tmp_w, tmp_h)
+            self.items.append(self.scene.addRect(rect, pen, brush))
 
 
 if __name__ == "__main__":
