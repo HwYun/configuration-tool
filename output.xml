@@ -1,4 +1,3 @@
-<?xml version="1.0"?>
 <cctvs>
     <cctv id="1">
         <frame_area>((0, 0), (0, 0))</frame_area>
@@ -17,12 +16,12 @@
         <HOI_shelf>" "</HOI_shelf>
     </cctv>
     <cctv id="3">
-        <frame_area>((0, 0), (0, 0))</frame_area>
-        <top_view_point>[[0, 0], [0, 0], [0, 0], [0, 0]]</top_view_point>
+        <frame_area>()</frame_area>
+        <top_view_point>[[165, 102], [522, 185], [478, 327], [106, 301]]</top_view_point>
         <top_view_size>(0, 0)</top_view_size>
-        <counting_line>[[[[0, 0], [0, 0]], True]]</counting_line>
-        <ROI_mask>" "</ROI_mask>
-        <HOI_shelf>" "</HOI_shelf>
+        <counting_line>]</counting_line>
+        <ROI_mask />
+        <HOI_shelf> </HOI_shelf>
     </cctv>
     <cctv id="4">
         <frame_area>((0, 0), (0, 0))</frame_area>

@@ -28,16 +28,23 @@ class Form(QWidget):
         QWidget.__init__(self, flags=Qt.Widget)
         self.brushcolor = QColor(255, 255, 255, 0)
 
-        self.counting_line_lst = []
-
-        self.ROI = ""
+        self.camera_id = 0
 
         self.tL = QPointF()  # topLeft
         self.bR = QPointF()  # bottomRight
 
-        # 탑 뷰
+        # frame area
+        self.frame_area = tuple()
+
+        # top view
         self.top_view = TopView()
         self.top_view_output = TopView()
+
+        # counting line
+        self.counting_line_lst = []
+
+        # ROI mask
+        self.ROI = ""
 
         self.view = CView(self)
         # 전체 레이아웃 박스
@@ -136,6 +143,10 @@ class Form(QWidget):
         self.ROI_input_btn.clicked.connect(self.getROI)
         leftB.addWidget(self.ROI_input_btn)
 
+        self.ID_input_btn = QPushButton('Camera ID')
+        self.ID_input_btn.clicked.connect(self.getCameraId)
+        leftB.addWidget(self.ID_input_btn)
+
         #  그룹박스 4
         gb = QGroupBox()
         leftB.addWidget(gb)
@@ -196,6 +207,9 @@ class Form(QWidget):
         self.roi_path = QLabel("ROI\n", self)
         self.gb5_vbox.addWidget(self.roi_path)
 
+        self.camera_id_lb = QLabel("Camera_ID", self)
+        self.gb5_vbox.addWidget(self.camera_id_lb)
+
         """
         self.tmp_vbox = QVBoxLayout()
         rightB.addWidget(self.tmp_vbox)
@@ -206,7 +220,7 @@ class Form(QWidget):
         rightB.addWidget(self.save_vbox)
         """
         self.save_btn = QPushButton('Save')
-        self.save_btn.clicked.connect(self.clear_Clicked_drawing)
+        self.save_btn.clicked.connect(self.save_data)
         rightB.addWidget(self.save_btn)
 
         rightB.addStretch(1)
@@ -294,6 +308,7 @@ class Form(QWidget):
 
         self.view.scale_count = 0
         self.view.line_num = 0
+        self.view.frame_area_drawing_chk = False
 
     # 진정한 의미로 그린것만 지움. 편법사용 x
     def clear_Clicked_drawing(self):
@@ -315,6 +330,7 @@ class Form(QWidget):
                                 " [{4}, {5}], [{6}, {7}]]".format(0, 0, 0, 0, 0, 0, 0, 0))
         # self.display_image(self.sid)
         self.view.line_num = 0
+        self.view.frame_area_drawing_chk = False
 
     def showColorDlg(self):
         # 색상 대화상자 생성
@@ -331,6 +347,7 @@ class Form(QWidget):
             # self.brushcolor = color
             # self.brushbtn.setStyleSheet('background-color: {}'.format(color.name()))
 
+    """
     # 사실 의미없음
     def showing_Image(self):
         img = QPixmap('image.png')
@@ -340,6 +357,7 @@ class Form(QWidget):
             self.display_image(img)
             # QCoreApplication.processEvents()  # let Qt do his work
             # time.sleep(0.5)
+    """
 
     def openFileNameDialog(self):
         fileName, f_type = QFileDialog.getOpenFileName(self, "불러올 이미지를 선택하세요", "",
@@ -350,7 +368,6 @@ class Form(QWidget):
             self.view.scale_count = 0
             self.view.display_image(self.sid)
             self.clear_Clicked_drawing()
-
 
     def getROI(self):
         fileName, f_type = QFileDialog.getOpenFileName(self, "Select ROI", "",
@@ -373,6 +390,56 @@ class Form(QWidget):
             self.top_view_output.size.height = height
             self.TvSize_lb.setText("top_view_size( %4d, %4d )" % (self.top_view.size.width, self.top_view.size.height))
 
+    def getCameraId(self):
+        tmp_id, ok = QInputDialog.getInt(self, '', "Enter Camera id")
+        if ok:
+            self.camera_id = tmp_id
+            self.camera_id_lb.setText("Camera_ID: %d" % self.camera_id)
+
+    def save_data(self):
+        if self.camera_id > 0:
+            tree = ET.parse("config_data.xml")
+            root = tree.getroot()
+
+            for cctv in root.iter('cctv'):
+                if self.camera_id == int(cctv.get('id')):
+                    new_frame_area = self.frame_area
+                    cctv.find('frame_area').text = str(new_frame_area)
+                    # cctv.find('frame_area').set('updated', 'yes')
+
+                    new_top_view_point = "["
+                    for i in range(len(self.top_view_output.pts)):
+                        new_top_view_point = new_top_view_point + str([self.top_view_output.pts[i].x(),
+                                                   self.top_view_output.pts[i].y()]) + ", "
+                    new_top_view_point = new_top_view_point[:-2] + "]"
+                    cctv.find('top_view_point').text = new_top_view_point
+                    # cctv.find('top_view_point').set('updated', 'yes')
+
+                    new_top_view_size = (self.top_view_output.size.width, self.top_view_output.size.height)
+                    cctv.find('top_view_size').text = str(new_top_view_size)
+
+                    new_counting_line = "["
+                    for i in range(len(self.counting_line_lst)):
+                        new_counting_line = new_counting_line + "[" + str(self.counting_line_lst[i]) + ", True], "
+                    new_counting_line = new_counting_line[:-2] + "]"
+                    cctv.find('counting_line').text = str(new_counting_line)
+
+                    new_ROI_mask = self.ROI
+                    cctv.find('ROI_mask').text = new_ROI_mask
+
+                    new_HOI_shelf = " "
+                    cctv.find('HOI_shelf').text = new_HOI_shelf
+
+            tree.write('output.xml')
+        else:
+            tmp_id, ok = QInputDialog.getInt(self, '', "Enter Camera id.\nAnd Click Save Button again")
+            if ok:
+                self.camera_id = tmp_id
+                self.camera_id_lb.setText("Camera_ID: %d" % self.camera_id)
+
+
+
+
 
 class CView(QGraphicsView):
 
@@ -393,6 +460,7 @@ class CView(QGraphicsView):
         self.end = QPointF()
 
         self.line_num = 0
+        self.frame_area_drawing_chk = False
 
         self.tL = QPointF()
         self.bR = QPointF()
@@ -455,6 +523,14 @@ class CView(QGraphicsView):
 
                 self.parent().top_view.index = self.parent().top_view.index + 1
                 self.item_type = 1
+
+            elif self.parent().drawType == 2:  # frame area
+                if self.frame_area_drawing_chk:
+                    for i in self.scene.items():
+                        if type(i) is QGraphicsRectItem:
+                            self.scene.removeItem(i)
+
+
 
     def mouseMoveEvent(self, e):
         # self.mouse_place = e.pos()
@@ -547,6 +623,8 @@ class CView(QGraphicsView):
                                                                                                 self.tL.y,
                                                                                                 self.bR.x,
                                                                                                 self.bR.y))
+                self.parent().frame_area = ((int(self.tL.x), int(self.tL.y)), (int(self.bR.x), int(self.bR.y)))
+
             # test
             """
             if self.parent().drawType == 3:
@@ -658,6 +736,7 @@ class CView(QGraphicsView):
                 self.items.clear()
                 rect = QRectF(self.start, self.end)
                 self.scene.addRect(rect, pen, brush)
+                self.frame_area_drawing_chk = True
         print(self.scene.items())
 
     def display_image(self, img):

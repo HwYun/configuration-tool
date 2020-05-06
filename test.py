@@ -1,12 +1,31 @@
 import xml.etree.ElementTree as et
 
-tree = et.parse("C:/Users/YHawon/PycharmProjects/PyQt5_Prac/config_data.xml")
+tree = et.parse("config_data.xml")
+root = tree.getroot()
 
-cctv = tree.find('./cctv')
+camera_id = '1'
 
-print(cctv.tag)
-print(cctv.attrib)
-print(cctv.get('id'))
+for cctv in root.iter('cctv'):
+    if camera_id == cctv.get('id'):
 
-cctv_frame_area = cctv.find('frame_area')
-print(cctv_frame_area.text)
+        new_frame_area = ((0, 0), (1600, 900))
+        cctv.find('frame_area').text = str(new_frame_area)
+        # cctv.find('frame_area').set('updated', 'yes')
+
+        new_top_view_point = [[1, 2], [1, 2], [1, 2], [1, 2]]
+        cctv.find('top_view_point').text = str(new_top_view_point)
+        # cctv.find('top_view_point').set('updated', 'yes')
+
+        new_top_view_size = (1200, 800)
+        cctv.find('top_view_size').text = str(new_top_view_size)
+
+        new_counting_line = [[[[300, 400], [500, 600]], True]]
+        cctv.find('counting_line').text = str(new_counting_line)
+
+        new_ROI = "Sample String"
+        cctv.find('ROI_mask').text = new_ROI
+
+        new_HOI = ""
+        cctv.find('HOI_shelf').text = new_HOI
+
+tree.write('output.xml')
