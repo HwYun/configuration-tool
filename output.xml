@@ -8,20 +8,20 @@
         <HOI_shelf>" "</HOI_shelf>
     </cctv>
     <cctv id="2">
+        <frame_area>((577, 315), (2829, 1788))</frame_area>
+        <top_view_point>[[1091, 1037], [1092, 1357], [1819, 1395], [2385, 844]]</top_view_point>
+        <top_view_size>(1000, 200)</top_view_size>
+        <counting_line>[[[[2286, 1541], [2578, 1256]], True], [[[2578, 1256], [1693, 915]], True]]</counting_line>
+        <ROI_mask>C:/Users/YHawon/Downloads/picpick_inst_kr.exe</ROI_mask>
+        <HOI_shelf> </HOI_shelf>
+    </cctv>
+    <cctv id="3">
         <frame_area>((0, 0), (0, 0))</frame_area>
         <top_view_point>[[0, 0], [0, 0], [0, 0], [0, 0]]</top_view_point>
         <top_view_size>(0, 0)</top_view_size>
         <counting_line>[[[[0, 0], [0, 0]], True]]</counting_line>
         <ROI_mask>" "</ROI_mask>
         <HOI_shelf>" "</HOI_shelf>
-    </cctv>
-    <cctv id="3">
-        <frame_area>()</frame_area>
-        <top_view_point>[[165, 102], [522, 185], [478, 327], [106, 301]]</top_view_point>
-        <top_view_size>(0, 0)</top_view_size>
-        <counting_line>]</counting_line>
-        <ROI_mask />
-        <HOI_shelf> </HOI_shelf>
     </cctv>
     <cctv id="4">
         <frame_area>((0, 0), (0, 0))</frame_area>

@@ -221,6 +221,10 @@ class Form(QWidget):
         self.save_vbox = QVBoxLayout()
         rightB.addWidget(self.save_vbox)
         """
+        self.load_btn = QPushButton('Load')
+        self.load_btn.clicked.connect(self.save_data)
+        rightB.addWidget(self.load_btn)
+
         self.save_btn = QPushButton('Save')
         self.save_btn.clicked.connect(self.save_data)
         rightB.addWidget(self.save_btn)
@@ -372,8 +376,10 @@ class Form(QWidget):
             print(fileName)
             self.sid = QPixmap(fileName)
             self.view.scale_count = 0
-            self.view.display_image(self.sid)
             self.clear_Clicked_drawing()
+            self.clear_Clicked()
+            self.view.display_image(self.sid)
+
 
     def getROI(self):
         fileName, f_type = QFileDialog.getOpenFileName(self, "Select ROI", "",
@@ -401,6 +407,15 @@ class Form(QWidget):
         if ok:
             self.camera_id = tmp_id
             self.camera_id_lb.setText("Camera_ID: %d" % self.camera_id)
+
+    def load_data(self):
+        if self.camera_id > 0:
+            tree = ET.parse("config_data.xml")
+            root = tree.getroot()
+
+            for cctv in root.iter('cctv'):
+                if self.camera_id == int(cctv.get('id')):
+                    self.frame_area_output = list(cctv.find('frame_area'))
 
     def save_data(self):
         if self.camera_id > 0:
@@ -563,23 +578,11 @@ class CView(QGraphicsView):
                     self.scene.removeItem(self.items[-1])
                     del (self.items[-1])
 
-
                 # 현재 선 추가
                 line = QLineF(self.start.x(), self.start.y(), self.end.x(), self.end.y())
                 self.items.append(self.scene.addLine(line, pen))
                 self.item_type = 0
 
-            # top_view
-            """
-            if self.parent().drawType == 1:
-                path = QPainterPath()
-                path.moveTo(self.start)
-                path.lineTo(self.end)
-                self.scene.addPath(path, pen)
-
-                # 시작점을 다시 기존 끝점으로
-                # self.start = e.pos()
-            """
             # frame_area
             # 일단 이거 좀 고쳐야 할게... 우측에서 좌측으로 안그려짐.
             # 밑에서 위로도 안그려짐.
@@ -632,26 +635,6 @@ class CView(QGraphicsView):
                 self.parent().frame_area_output = ((int(self.tL.x), int(self.tL.y)),
                                                    (int(self.bR.x), int(self.bR.y)))
 
-
-            # test
-            """
-            if self.parent().drawType == 3:
-                brush = QBrush(self.parent().brushcolor)
-
-                if len(self.items) > 0:
-                    self.scene.removeItem(self.items[-1])
-                    del (self.items[-1])
-
-                # rect = QRectF(self.start, self.end)
-                # tL에 topLeft좌표, rect_w에 너비, rect_h에 높이
-
-                (self.tL.x, self.tL.y), self.rect_w, self.rect_h = self.coordinateAdj()
-
-                # rect = QRectF(self.start, self.end)
-                rect = QRectF(self.tL.x, self.tL.y, self.rect_w, self.rect_h)
-                self.items.append(self.scene.addEllipse(rect, pen, brush))
-            """
-
     # 직사각형  대각위치의 좌표 2개 입력받으면 topLeft좌표와 width, height 반환 함수.
     def coordinateAdj(self, s_x, s_y, e_x, e_y):
         if s_x < e_x and s_y < e_y:
@@ -663,8 +646,7 @@ class CView(QGraphicsView):
         else:
             return (e_x, e_y), s_x - e_x, s_y - e_y
 
-    # 곡선 제외한 그리기 모드에서 마우스 클릭 해지 시 완성된 그림을 그리는 방식.
-    # 직선, 사각형, 원의 경우 클릭 해지 시 기존에 그려진 것들 삭제하고 최종적으로 다시 한번 그리는 방식.
+    # 클릭 해지 시 기존에 그려진 것들 삭제하고 최종적으로 다시 한번 그리는 방식.
     def mouseReleaseEvent(self, e):
 
         if e.button() == Qt.LeftButton:

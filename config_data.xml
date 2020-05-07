@@ -9,10 +9,10 @@
         <HOI_shelf>" "</HOI_shelf>
     </cctv>
     <cctv id="2">
-        <frame_area>((0, 0), (0, 0))</frame_area>
-        <top_view_point>[[0, 0], [0, 0], [0, 0], [0, 0]]</top_view_point>
-        <top_view_size>(0, 0)</top_view_size>
-        <counting_line>[[[[0, 0], [0, 0]], True]]</counting_line>
+        <frame_area>((0, 0), (1050, 1080))</frame_area>
+        <top_view_point>[[97, 1021], [284, 136], [573, 988], [432, 126]]</top_view_point>
+        <top_view_size>(1850, 250)</top_view_size>
+        <counting_line>[[[[60, 981], [903, 906]], True]]</counting_line>
         <ROI_mask>" "</ROI_mask>
         <HOI_shelf>" "</HOI_shelf>
     </cctv>
