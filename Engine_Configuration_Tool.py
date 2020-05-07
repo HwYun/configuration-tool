@@ -559,7 +559,7 @@ class CView(QGraphicsView):
             if self.parent().drawType == 0:
 
                 # 장면에 그려진 이전 선을 제거
-                if len(self.items) > 0 and self.item_type != 1:
+                if len(self.items) > 0 and self.item_type == 0:
                     self.scene.removeItem(self.items[-1])
                     del (self.items[-1])
 
@@ -743,6 +743,8 @@ class CView(QGraphicsView):
                 # self.scene.addRect(rect, pen, brush)
                 self.items.append(self.scene.addRect(rect, pen, brush))
                 self.frame_area_drawing_chk = True
+                self.item_type = 2
+
         print(self.scene.items())
 
     def display_image(self, img):
@@ -807,7 +809,7 @@ class CView(QGraphicsView):
 
         brush = QBrush(self.parent().brushcolor)
 
-        # counting_line
+        # drawing counting_line with scale
         if len(self.parent().counting_line_lst_calc):
             pen = QPen(QColor(0, 255, 0, 192), 4)
             for i in range(self.line_num):
@@ -823,7 +825,7 @@ class CView(QGraphicsView):
                 self.items.append(self.scene.addLine(line, pen))
                 self.item_type = 0
 
-        # top view
+        # drawing top view with scale
         pen = QPen(QColor(20, 181, 255, 192), 4)
         tmp_idx = self.parent().top_view.index
         if tmp_idx > 0:
@@ -848,7 +850,7 @@ class CView(QGraphicsView):
                     self.items.append(self.scene.addLine(line, pen))
             self.item_type = 1
 
-        # frame area
+        # drawing frame area with scale
         pen = QPen(QColor(255, 0, 0, 192), 4)
         if self.frame_area_drawing_chk:
             self.parent().frame_area[0][0] = coefficient * self.parent().frame_area[0][0]
@@ -864,6 +866,7 @@ class CView(QGraphicsView):
             (tmp_x, tmp_y), tmp_w, tmp_h = self.coordinateAdj(tmp_start_x, tmp_start_y, tmp_end_x, tmp_end_y)
             rect = QRectF(tmp_x, tmp_y, tmp_w, tmp_h)
             self.items.append(self.scene.addRect(rect, pen, brush))
+            self.item_type = 2
 
 
 if __name__ == "__main__":
