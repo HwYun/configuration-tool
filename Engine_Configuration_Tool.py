@@ -7,7 +7,7 @@ from PyQt5.QtCore import *
 import xml.etree.ElementTree as ET
 
 import time
-
+import copy
 
 class WaH:
     def __init__(self):
@@ -235,6 +235,10 @@ class Form(QWidget):
         self.save_btn.clicked.connect(self.save_data)
         rightB.addWidget(self.save_btn)
 
+        self.draw_btn = QPushButton('Draw Loaded Configuration')
+        self.draw_btn.clicked.connect(self.view.drawLoadedConfig)
+        rightB.addWidget(self.draw_btn)
+
         rightB.addStretch(1)
 
         self.resetVariable(True)
@@ -303,10 +307,10 @@ class Form(QWidget):
                     self.pencolor = QColor(255, 0, 0, 192)  # Red
                 break
 
-    def resetVariable(self, bool):  # True면 모두 초기화, False면 그린 것만 초기화.
+    def resetVariable(self, crt):  # True면 모두 초기화, False면 그린 것만 초기화.
         while len(self.counting_line_lst):
             self.counting_line_lst.pop()
-        while len(self.counting_line_lst):
+        while len(self.counting_line_lst_calc):
             self.counting_line_lst_calc.pop()
 
         while len(self.top_view.pts):
@@ -319,8 +323,9 @@ class Form(QWidget):
         self.top_view_output.size.width = 0
         self.top_view_output.size.height = 0
         self.top_view.index = 0
+        self.top_view_output.index = 0
 
-        self.frame_area = [[0, 0], [0, 0]]
+        self.frame_area = []
         self.frame_area_output = ((0, 0), (0, 0))
 
         self.ROI = " "
@@ -329,7 +334,7 @@ class Form(QWidget):
 
         self.view.line_num = 0
         self.view.frame_area_drawing_chk = False
-        if bool :
+        if crt:
             self.view.scale_count = 0
 
     # 화면에 표시된거 클리어
@@ -383,7 +388,6 @@ class Form(QWidget):
             print(fileName)
             self.sid = QPixmap(fileName)
             self.view.scale_count = 0
-            self.clear_Clicked_drawing()
             self.clear_Clicked()
             self.view.display_image(self.sid)
 
@@ -456,6 +460,11 @@ class Form(QWidget):
             root = tree.getroot()
             tmp_point = QPointF()
 
+            save_camera_id = self.camera_id
+
+            self.resetVariable(False)
+            self.camera_id = save_camera_id
+
             # XML 파일에서 데이터 읽어오기.
             for cctv in root.iter('cctv'):
                 if self.camera_id == int(cctv.get('id')):
@@ -470,6 +479,7 @@ class Form(QWidget):
                     for idx in range(len(self.top_view_output.pts)):
                         tmp_point = QPointF(self.top_view_output.pts[idx][0], self.top_view_output.pts[idx][1])
                         self.top_view_output.pts[idx] = tmp_point
+                        self.top_view_output.index = self.top_view_output.index + 1
                     print(self.top_view_output.pts[0].x())
 
                     tmp_tuple = dataConversion('top_view_size', cctv)
@@ -489,7 +499,7 @@ class Form(QWidget):
                     for l_num in range(self.view.line_num):
                         self.counting_line_lst.append(tmp_list[l_num][0])
 
-                    self.updateFeature() # update all feature
+                    self.updateFeature()  # update all feature
         else:
             tmp_id, ok = QInputDialog.getInt(self, '', "Enter Camera id.\nAnd Click Load Button again")
             if ok:
@@ -530,15 +540,27 @@ class Form(QWidget):
                     new_HOI_shelf = " "
                     cctv.find('HOI_shelf').text = new_HOI_shelf
 
-            tree.write('output.xml')
+            tree.write('config_data.xml')
         else:
             tmp_id, ok = QInputDialog.getInt(self, '', "Enter Camera id.\nAnd Click Save Button again")
             if ok:
                 self.camera_id = tmp_id
                 self.camera_id_lb.setText("Camera_ID: %d" % self.camera_id)
 
-class CView(QGraphicsView):
+    def setOutputIntoCalc(self):
+        self.frame_area = []
+        # frame area
+        for idx in self.frame_area_output:
+            self.frame_area.append(list(idx))
 
+        # top view
+        self.top_view = copy.deepcopy(self.top_view_output)
+
+        # counting line
+        self.counting_line_lst_calc = copy.deepcopy(self.counting_line_lst)
+
+
+class CView(QGraphicsView):
     # QGraphicsView의 생성자 함수.
     # QGraphicsScene클래스에 그려진 그래픽 아이템(직선, 곡선, 사각형, 원)들을 화면에 표시하는 역할을 담당.
     def __init__(self, parent):
@@ -625,8 +647,6 @@ class CView(QGraphicsView):
                     for i in self.scene.items():
                         if type(i) is QGraphicsRectItem:
                             self.scene.removeItem(i)
-
-
 
     def mouseMoveEvent(self, e):
         # self.mouse_place = e.pos()
@@ -874,10 +894,14 @@ class CView(QGraphicsView):
         if len(self.parent().counting_line_lst_calc):
             pen = QPen(QColor(0, 255, 0, 192), 4)
             for i in range(self.line_num):
-                self.parent().counting_line_lst_calc[i][0][0] = coefficient * self.parent().counting_line_lst_calc[i][0][0]
-                self.parent().counting_line_lst_calc[i][0][1] = coefficient * self.parent().counting_line_lst_calc[i][0][1]
-                self.parent().counting_line_lst_calc[i][1][0] = coefficient * self.parent().counting_line_lst_calc[i][1][0]
-                self.parent().counting_line_lst_calc[i][1][1] = coefficient * self.parent().counting_line_lst_calc[i][1][1]
+                self.parent().counting_line_lst_calc[i][0][0] = coefficient * \
+                                                                self.parent().counting_line_lst_calc[i][0][0]
+                self.parent().counting_line_lst_calc[i][0][1] = coefficient * \
+                                                                self.parent().counting_line_lst_calc[i][0][1]
+                self.parent().counting_line_lst_calc[i][1][0] = coefficient * \
+                                                                self.parent().counting_line_lst_calc[i][1][0]
+                self.parent().counting_line_lst_calc[i][1][1] = coefficient * \
+                                                                self.parent().counting_line_lst_calc[i][1][1]
                 tmp_start_x = self.parent().counting_line_lst_calc[i][0][0]
                 tmp_start_y = self.parent().counting_line_lst_calc[i][0][1]
                 tmp_end_x = self.parent().counting_line_lst_calc[i][1][0]
@@ -887,9 +911,9 @@ class CView(QGraphicsView):
                 self.item_type = 0
 
         # drawing top view with scale
-        pen = QPen(QColor(20, 181, 255, 192), 4)
         tmp_idx = self.parent().top_view.index
         if tmp_idx > 0:
+            pen = QPen(QColor(20, 181, 255, 192), 4)
             for j in range(tmp_idx):
                 self.parent().top_view.pts[j] = coefficient * self.parent().top_view.pts[j]
             for i in range(tmp_idx):
@@ -912,8 +936,8 @@ class CView(QGraphicsView):
             self.item_type = 1
 
         # drawing frame area with scale
-        pen = QPen(QColor(255, 0, 0, 192), 4)
         if self.frame_area_drawing_chk:
+            pen = QPen(QColor(255, 0, 0, 192), 4)
             self.parent().frame_area[0][0] = coefficient * self.parent().frame_area[0][0]
             self.parent().frame_area[0][1] = coefficient * self.parent().frame_area[0][1]
             self.parent().frame_area[1][0] = coefficient * self.parent().frame_area[1][0]
@@ -928,6 +952,28 @@ class CView(QGraphicsView):
             rect = QRectF(tmp_x, tmp_y, tmp_w, tmp_h)
             self.items.append(self.scene.addRect(rect, pen, brush))
             self.item_type = 2
+
+    def drawLoadedConfig(self):
+        tmp_coef = 1.0
+        print(self.scale_count)
+
+        # load 한 값 계산할 변수에 복사.
+        self.parent().setOutputIntoCalc()
+
+        # scale 되어있다면 그만큼 scale
+        if self.scale_count < 0:
+            for rpt in range(self.scale_count, 0):
+                tmp_coef = tmp_coef * 0.90909
+                print("!")
+        elif self.scale_count > 0:
+            for rpt in range(self.scale_count):
+                print("!!")
+                tmp_coef = tmp_coef * 1.1
+        self.frame_area_drawing_chk = True
+        self.scale_item(tmp_coef)
+        print("end")
+
+
 
 
 if __name__ == "__main__":

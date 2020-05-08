@@ -24,20 +24,20 @@
         <HOI_shelf> </HOI_shelf>
     </cctv>
     <cctv id="4">
-        <frame_area>((0, 0), (0, 0))</frame_area>
-        <top_view_point>[[0, 0], [0, 0], [0, 0], [0, 0]]</top_view_point>
+        <frame_area>((81, 36), (400, 397))</frame_area>
+        <top_view_point>[[178, 85], [231, 87], [304, 309], [165, 340]]</top_view_point>
         <top_view_size>(0, 0)</top_view_size>
-        <counting_line>[[[[0, 0], [0, 0]], True]]</counting_line>
-        <ROI_mask>" "</ROI_mask>
-        <HOI_shelf>" "</HOI_shelf>
+        <counting_line>[[[[238, 104], [300, 178]], True], [[[191, 307], [337, 189]], True]]</counting_line>
+        <ROI_mask> </ROI_mask>
+        <HOI_shelf> </HOI_shelf>
     </cctv>
     <cctv id="5">
-        <frame_area>((0, 0), (0, 0))</frame_area>
-        <top_view_point>[[0, 0], [0, 0], [0, 0], [0, 0]]</top_view_point>
+        <frame_area>((173, 136), (1867, 182))</frame_area>
+        <top_view_point>[[348, 184], [367, 443], [1658, 433], [1742, 189]]</top_view_point>
         <top_view_size>(0, 0)</top_view_size>
-        <counting_line>[[[[0, 0], [0, 0]], True]]</counting_line>
-        <ROI_mask>" "</ROI_mask>
-        <HOI_shelf>" "</HOI_shelf>
+        <counting_line>[[[[354, 187], [1656, 430]], True], [[[372, 441], [1743, 196]], True], [[[1085, 180], [1038, 434]], True]]</counting_line>
+        <ROI_mask> </ROI_mask>
+        <HOI_shelf> </HOI_shelf>
     </cctv>
     <cctv id="6">
         <frame_area>((0, 0), (0, 0))</frame_area>

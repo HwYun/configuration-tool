@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as et
+import copy
 
 class WaH:
     def __init__(self):
@@ -54,3 +55,14 @@ for cctv in root.iter('cctv'):
         print(tmp_list[0][0][0])
         print(tmp_list[0][0][1])
 
+print("---------------------------------")
+top_view = top_view_output
+print(top_view)
+print(top_view.pts)
+print(top_view.size.width)
+print(top_view.size.height)
+
+top_view = copy.deepcopy(top_view_output)
+
+top_view_output.pts.pop()
+print(top_view.pts)
