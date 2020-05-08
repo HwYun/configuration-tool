@@ -708,7 +708,6 @@ class CView(QGraphicsView):
                 # rect = QRectF(self.start, self.end)
                 rect = QRectF(self.tL.x, self.tL.y, self.rect_w, self.rect_h)
                 self.items.append(self.scene.addRect(rect, pen, brush))
-
                 self.item_type = 2
 
                 if self.scale_count != 0:  # scale을 했음.
