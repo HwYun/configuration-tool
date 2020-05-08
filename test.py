@@ -48,5 +48,9 @@ for cctv in root.iter('cctv'):
         top_view_output.size.width = int(tmp_tuple[0])
         top_view_output.size.height = int(tmp_tuple[1])
         tmp_list = convert('counting_line', cctv)
-        print(tmp_list)
+        # tmp_list 의 첫번째 index는 각각의 line의 index
+        # 두번째 index는 line의 시작&끝 좌표, counting 방향(T/F)
+        # 세번째 index는 두번째 index이 [0]일 경우 시작 or 끝 좌표 (0: 시작, 1: 끝)
+        print(tmp_list[0][0][0])
+        print(tmp_list[0][0][1])
 

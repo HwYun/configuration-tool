@@ -22,6 +22,12 @@ class TopView:
         self.size = WaH()
 
 
+def dataConversion(string, item):
+    tmp_line = item.find(string).text.strip()
+    tmp_line = tmp_line.replace('"', '')
+    return eval(tmp_line)
+
+
 class Form(QWidget):
 
     def __init__(self):
@@ -206,8 +212,8 @@ class Form(QWidget):
         self.counting_line_lb = QLabel(self.counting_line_text, self)
         self.gb5_vbox.addWidget(self.counting_line_lb)
 
-        self.roi_path = QLabel("ROI\n", self)
-        self.gb5_vbox.addWidget(self.roi_path)
+        self.roi_path_lb = QLabel("ROI\n", self)
+        self.gb5_vbox.addWidget(self.roi_path_lb)
 
         self.camera_id_lb = QLabel("Camera_ID", self)
         self.gb5_vbox.addWidget(self.camera_id_lb)
@@ -222,7 +228,7 @@ class Form(QWidget):
         rightB.addWidget(self.save_vbox)
         """
         self.load_btn = QPushButton('Load')
-        self.load_btn.clicked.connect(self.save_data)
+        self.load_btn.clicked.connect(self.load_data)
         rightB.addWidget(self.load_btn)
 
         self.save_btn = QPushButton('Save')
@@ -230,6 +236,9 @@ class Form(QWidget):
         rightB.addWidget(self.save_btn)
 
         rightB.addStretch(1)
+
+        self.resetVariable(True)
+        self.updateFeature()
 
         # 전체 레이아웃 박스에 좌 중 우 박스 배치
         Big_layB.addLayout(leftB)
@@ -294,27 +303,40 @@ class Form(QWidget):
                     self.pencolor = QColor(255, 0, 0, 192)  # Red
                 break
 
-    def checkClicked(self):
-        pass
-
-    # 화면에 표시된거 클리어
-    def clear_Clicked(self):
-        self.view.scene.clear()
+    def resetVariable(self, bool):  # True면 모두 초기화, False면 그린 것만 초기화.
         while len(self.counting_line_lst):
             self.counting_line_lst.pop()
+        while len(self.counting_line_lst):
+            self.counting_line_lst_calc.pop()
+
         while len(self.top_view.pts):
             self.top_view.pts.pop()
         while len(self.top_view_output.pts):
             self.top_view_output.pts.pop()
-        self.top_view.index = 0
-        self.counting_line_lb.setText("counting_line: []")
-        self.frame_area_lb.setText('frame_area: ( {0}, {1} ), ( {2}, {3} )'.format(0.0, 0.0, 0.0, 0.0))
-        self.Tvpoint_lb.setText("top_view_point: [[{0}, {1}], [{2}, {3}],"
-                                " [{4}, {5}], [{6}, {7}]]".format(0, 0, 0, 0, 0, 0, 0, 0))
 
-        self.view.scale_count = 0
+        self.top_view.size.width = 0
+        self.top_view.size.height = 0
+        self.top_view_output.size.width = 0
+        self.top_view_output.size.height = 0
+        self.top_view.index = 0
+
+        self.frame_area = [[0, 0], [0, 0]]
+        self.frame_area_output = ((0, 0), (0, 0))
+
+        self.ROI = " "
+
+        self.camera_id = 0
+
         self.view.line_num = 0
         self.view.frame_area_drawing_chk = False
+        if bool :
+            self.view.scale_count = 0
+
+    # 화면에 표시된거 클리어
+    def clear_Clicked(self):
+        self.view.scene.clear()
+        self.resetVariable(True)
+        self.updateFeature()
 
     # 진정한 의미로 그린것만 지움. 편법사용 x
     def clear_Clicked_drawing(self):
@@ -323,24 +345,9 @@ class Form(QWidget):
             # print(type(i))
             if type(i) is not QGraphicsPixmapItem:
                 self.view.scene.removeItem(i)
-        while len(self.counting_line_lst):
-            self.counting_line_lst.pop()
-        while len(self.counting_line_lst_calc):
-            self.counting_line_lst_calc.pop()
-        while len(self.top_view.pts):
-            self.top_view.pts.pop()
-        while len(self.top_view_output.pts):
-            self.top_view_output.pts.pop()
-        self.top_view.index = 0
-        self.frame_area = [[0, 0], [0, 0]]
-        self.frame_area_output = ((0, 0), (0, 0))
-        self.counting_line_lb.setText("counting_line: []")
-        self.frame_area_lb.setText('frame_area: ( {0}, {1} ), ( {2}, {3} )'.format(0.0, 0.0, 0.0, 0.0))
-        self.Tvpoint_lb.setText("top_view_point: [[{0}, {1}], [{2}, {3}],"
-                                " [{4}, {5}], [{6}, {7}]]".format(0, 0, 0, 0, 0, 0, 0, 0))
-        # self.display_image(self.sid)
-        self.view.line_num = 0
-        self.view.frame_area_drawing_chk = False
+
+        self.resetVariable(False)
+        self.updateFeature()
 
     def showColorDlg(self):
         # 색상 대화상자 생성
@@ -380,13 +387,12 @@ class Form(QWidget):
             self.clear_Clicked()
             self.view.display_image(self.sid)
 
-
     def getROI(self):
         fileName, f_type = QFileDialog.getOpenFileName(self, "Select ROI", "",
                                                        "All Files(*);;Python Files (*.py)")
         if fileName:
             self.ROI = fileName
-            self.roi_path.setText("ROI\n" + fileName)
+            self.roi_path_lb.setText("ROI\n" + fileName)
 
     def getTvWidth(self):
         width, ok = QInputDialog.getInt(self, '', "Enter TopView Width")
@@ -408,14 +414,87 @@ class Form(QWidget):
             self.camera_id = tmp_id
             self.camera_id_lb.setText("Camera_ID: %d" % self.camera_id)
 
+    def updateFeature(self):
+        # counting_line
+        tmp_text = "counting_line: \n["
+        for i in range(len(self.counting_line_lst)):
+            tmp_text = tmp_text + str(self.counting_line_lst[i]) + ",\n"
+        if len(self.counting_line_lst) > 0:
+            tmp_text = tmp_text[:-2] + "]"
+        else:
+            tmp_text = tmp_text + "]"
+        self.counting_line_lb.setText(tmp_text)
+
+        # top_view_point
+        tmp_text = "top_view: \n["
+        for i in range(len(self.top_view_output.pts)):
+            tmp_text = tmp_text + str([self.top_view_output.pts[i].x(), self.top_view_output.pts[i].y()]) + ",\n"
+        if len(self.top_view_output.pts) > 0:
+            tmp_text = tmp_text[:-2] + "]"
+        else:
+            tmp_text = tmp_text + "]"
+        self.Tvpoint_lb.setText(tmp_text)
+
+        # top_view_size
+        self.TvSize_lb.setText("top_view_size( %4d, %4d )"
+                               % (self.top_view_output.size.width, self.top_view_output.size.height))
+
+        # frame_area
+        tmp_list = self.frame_area_output
+        self.frame_area_lb.setText('frame_area: ( {0}, {1} ), ( {2}, {3} )'
+                                   .format(tmp_list[0][0], tmp_list[0][1], tmp_list[1][0], tmp_list[1][1]))
+
+        # ROI_path
+        self.roi_path_lb.setText("ROI\n" + self.ROI)
+
+        # Camera_ID
+        self.camera_id_lb.setText("Camera_ID: {0}".format(self.camera_id))
+
     def load_data(self):
         if self.camera_id > 0:
             tree = ET.parse("config_data.xml")
             root = tree.getroot()
+            tmp_point = QPointF()
 
+            # XML 파일에서 데이터 읽어오기.
             for cctv in root.iter('cctv'):
                 if self.camera_id == int(cctv.get('id')):
-                    self.frame_area_output = list(cctv.find('frame_area'))
+
+                    # frame area
+                    self.frame_area_output = dataConversion('frame_area', cctv)
+                    print(self.frame_area_output)
+
+                    # top_view_point
+                    self.top_view_output.pts = dataConversion('top_view_point', cctv)
+                    print(self.top_view_output.pts)
+                    for idx in range(len(self.top_view_output.pts)):
+                        tmp_point = QPointF(self.top_view_output.pts[idx][0], self.top_view_output.pts[idx][1])
+                        self.top_view_output.pts[idx] = tmp_point
+                    print(self.top_view_output.pts[0].x())
+
+                    tmp_tuple = dataConversion('top_view_size', cctv)
+                    print(tmp_tuple)
+                    self.top_view_output.size.width = int(tmp_tuple[0])
+                    self.top_view_output.size.height = int(tmp_tuple[1])
+
+                    tmp_list = dataConversion('counting_line', cctv)
+
+                    # tmp_list 의 첫번째 index는 각각의 line의 index
+                    # 두번째 index는 line의 시작&끝 좌표, counting 방향(T/F)
+                    # 세번째 index는 두번째 index이 [0]일 경우 시작 or 끝 좌표 (0: 시작, 1: 끝)
+                    print(tmp_list[0][0][0])
+                    print(tmp_list[0][0][1])
+                    self.counting_line_lst = []
+                    self.view.line_num = len(tmp_list)
+                    for l_num in range(self.view.line_num):
+                        self.counting_line_lst.append(tmp_list[l_num][0])
+
+                    self.updateFeature() # update all feature
+        else:
+            tmp_id, ok = QInputDialog.getInt(self, '', "Enter Camera id.\nAnd Click Load Button again")
+            if ok:
+                self.camera_id = tmp_id
+                self.camera_id_lb.setText("Camera_ID: %d" % self.camera_id)
 
     def save_data(self):
         if self.camera_id > 0:
