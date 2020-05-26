@@ -6,8 +6,8 @@ from PyQt5.QtCore import *
 
 import xml.etree.ElementTree as ET
 
-import time
 import copy
+
 
 class WaH:
     def __init__(self):
@@ -40,12 +40,12 @@ class Form(QWidget):
         self.bR = QPointF()  # bottomRight
 
         # frame area
-        self.frame_area = list()
-        self.frame_area_output = tuple()
+        self.frame_area = list()  # 계산용 즉 실제 좌표
+        self.frame_area_output = tuple()  # 겉으로 보여지는 좌표
 
         # top view
-        self.top_view = TopView()
-        self.top_view_output = TopView()
+        self.top_view = TopView()  # 계산용 즉 실제 좌표
+        self.top_view_output = TopView()  # 겉으로 보여지는 좌표
 
         # counting line
         self.counting_line_lst = []
@@ -517,10 +517,12 @@ class Form(QWidget):
                     cctv.find('frame_area').text = str(new_frame_area)
                     # cctv.find('frame_area').set('updated', 'yes')
 
+                    tmp_list = self.top_view_output.pts.pop(2)
+                    self.top_view_output.pts.append(tmp_list)
                     new_top_view_point = "["
                     for i in range(len(self.top_view_output.pts)):
                         new_top_view_point = new_top_view_point + str([self.top_view_output.pts[i].x(),
-                                                   self.top_view_output.pts[i].y()]) + ", "
+                                                                       self.top_view_output.pts[i].y()]) + ", "
                     new_top_view_point = new_top_view_point[:-2] + "]"
                     cctv.find('top_view_point').text = new_top_view_point
                     # cctv.find('top_view_point').set('updated', 'yes')
@@ -570,7 +572,7 @@ class CView(QGraphicsView):
 
         self.scale_count = 0
 
-        self.item_type = -1 # 직전에 그려진 item type
+        self.item_type = -1  # 직전에 그려진 item type
 
         self.items = []
 
@@ -584,6 +586,9 @@ class CView(QGraphicsView):
         self.bR = QPointF()
         self.rect_w = 0.0
         self.rect_h = 0.0
+
+        self.image_width = 0
+        self.image_height = 0
 
         self.setRenderHint(QPainter.HighQualityAntialiasing)
         self.mouse_place = QPointF()
@@ -599,7 +604,7 @@ class CView(QGraphicsView):
             self.start = e.pos()
             self.end = e.pos()
 
-            # top_view 점찍기.
+            # top_view 점찍기. clockwise or counterclockwise
             tmp_idx = self.parent().top_view.index
             tmp_pts = self.start
             # print(tmp_idx)
@@ -617,7 +622,8 @@ class CView(QGraphicsView):
                 self.parent().top_view.pts.append(self.start)
 
                 for i in range(len(self.parent().top_view_output.pts)):
-                    tmp_text = tmp_text + str([self.parent().top_view_output.pts[i].x(), self.parent().top_view_output.pts[i].y()]) + ",\n"
+                    tmp_text = tmp_text + str([self.parent().top_view_output.pts[i].x(),
+                                               self.parent().top_view_output.pts[i].y()]) + ",\n"
                 tmp_text = tmp_text[:-2] + "]"
                 self.parent().Tvpoint_lb.setText(tmp_text)
 
@@ -637,6 +643,7 @@ class CView(QGraphicsView):
                         self.items.append(self.scene.addLine(line, pen))
                 else:
                     line = QLineF(self.start.x(), self.start.y(), self.start.x(), self.start.y())
+                    self.items.append(self.scene.addLine(line, pen))
                     self.items.append(self.scene.addLine(line, pen))
 
                 self.parent().top_view.index = self.parent().top_view.index + 1
@@ -671,6 +678,19 @@ class CView(QGraphicsView):
 
             # counting_line
             if self.parent().drawType == 0:
+
+                # 장면에 그려진 이전 선을 제거
+                if len(self.items) > 0 and self.item_type == 0:
+                    self.scene.removeItem(self.items[-1])
+                    del (self.items[-1])
+
+                # 현재 선 추가
+                line = QLineF(self.start.x(), self.start.y(), self.end.x(), self.end.y())
+                self.items.append(self.scene.addLine(line, pen))
+                self.item_type = 0
+
+            # top_view
+            if self.parent().drawType == 1:
 
                 # 장면에 그려진 이전 선을 제거
                 if len(self.items) > 0 and self.item_type == 0:
@@ -768,7 +788,7 @@ class CView(QGraphicsView):
                 if self.scale_count != 0:  # scale을 했음.
                     if self.scale_count > 0:  # 기존보다 확대.
                         for i in range(self.scale_count):
-                            self.parent().counting_line_lst[self.line_num][0][0] = 0.90909 *\
+                            self.parent().counting_line_lst[self.line_num][0][0] = 0.90909 * \
                                                                                    self.parent().counting_line_lst[
                                                                                        self.line_num][0][0]
                             self.parent().counting_line_lst[self.line_num][0][1] = 0.90909 * \
@@ -830,7 +850,7 @@ class CView(QGraphicsView):
     def display_image(self, img):
         self.scene.clear()
         print(img.size())
-        w, h = img.size().width(), img.size().height()
+        self.image_width, self.image_height = img.size().width(), img.size().height()
 
         # self.imgQ = QImage.ImageQt(img)  # we need to hold reference to imgQ, or it will crash
         # pixMap = QPixmap.fromImage(self.imgQ)
@@ -838,18 +858,18 @@ class CView(QGraphicsView):
         # self.view.scene.addPixmap(img)
         self.item = self.scene.addPixmap(img)
 
-        self.item.setTransformOriginPoint(QPointF(0, 0))
+        self.item.setTransformOriginPoint(QPointF(self.image_width / 5, self.image_height / 5))
 
         self.setScene(self.scene)
         self.setCacheMode(QGraphicsView.CacheBackground)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 
-        chk = max(w/16, h/9)
-        chk = int(chk/12)
+        chk = max(self.image_width / 16, self.image_height / 9)
+        chk = int(chk / 12)
         if chk > 6:
-            for i in range(chk-6):
-               self.scale_down_pixmap()
+            for i in range(chk - 6):
+                self.scale_down_pixmap()
         """
         if w >= 1920 or h >= 1080:
             for i in range(6):
@@ -865,9 +885,8 @@ class CView(QGraphicsView):
                 self.scale_down_pixmap()
         """
 
-
         # self.view.fitInView(QRectF(0, 0, w, h), Qt.KeepAspectRatio)
-        # self.view.scene.update()
+        # self.scene.update()
 
     def scale_up_pixmap(self):
         self.scale_count = self.scale_count + 1
@@ -971,8 +990,6 @@ class CView(QGraphicsView):
         self.frame_area_drawing_chk = True
         self.scale_item(tmp_coef)
         print("end")
-
-
 
 
 if __name__ == "__main__":

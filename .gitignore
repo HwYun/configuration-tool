@@ -1,3 +1,7 @@
 # Project exclude paths
-.idea
-mm.jpg
+.idea/*
+*.jpg
+*.png
+__pycache__/*
+venv/*
+test.py
