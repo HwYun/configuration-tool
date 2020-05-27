@@ -292,7 +292,7 @@ class Form(QWidget):
                         # print(self.tL, self.bR)
 
             self.coord_text = 'frame_area: ( %4d, %4d ), ( %4d, %4d )' % (self.tL.x, self.tL.y, self.bR.x, self.bR.y)
-            self.frame_area_lb.setText(self.coord_text)
+            # self.frame_area_lb.setText(self.coord_text)
             # self.frame_area_lb.adjustSize()
 
     def radioClicked(self):
@@ -334,7 +334,10 @@ class Form(QWidget):
 
         self.view.line_num = 0
         self.view.frame_area_drawing_chk = False
+
         if crt:
+            self.view.image_width = 0
+            self.view.image_height = 0
             self.view.scale_count = 0
 
     # 화면에 표시된거 클리어
@@ -432,7 +435,8 @@ class Form(QWidget):
         # top_view_point
         tmp_text = "top_view: \n["
         for i in range(len(self.top_view_output.pts)):
-            tmp_text = tmp_text + str([self.top_view_output.pts[i].x(), self.top_view_output.pts[i].y()]) + ",\n"
+            tmp_text = tmp_text + str([self.top_view_output.pts[i].x(),
+                                       self.top_view_output.pts[i].y()]) + ",\n"
         if len(self.top_view_output.pts) > 0:
             tmp_text = tmp_text[:-2] + "]"
         else:
@@ -444,9 +448,9 @@ class Form(QWidget):
                                % (self.top_view_output.size.width, self.top_view_output.size.height))
 
         # frame_area
-        tmp_list = self.frame_area_output
+        tmp_tuple = self.frame_area_output
         self.frame_area_lb.setText('frame_area: ( {0}, {1} ), ( {2}, {3} )'
-                                   .format(tmp_list[0][0], tmp_list[0][1], tmp_list[1][0], tmp_list[1][1]))
+                                   .format(tmp_tuple[0][0], tmp_tuple[0][1], tmp_tuple[1][0], tmp_tuple[1][1]))
 
         # ROI_path
         self.roi_path_lb.setText("ROI\n" + self.ROI)
@@ -477,7 +481,8 @@ class Form(QWidget):
                     self.top_view_output.pts = dataConversion('top_view_point', cctv)
                     print(self.top_view_output.pts)
                     for idx in range(len(self.top_view_output.pts)):
-                        tmp_point = QPointF(self.top_view_output.pts[idx][0], self.top_view_output.pts[idx][1])
+                        tmp_point = QPointF(self.top_view_output.pts[idx][0],
+                                            self.top_view_output.pts[idx][1])
                         self.top_view_output.pts[idx] = tmp_point
                         self.top_view_output.index = self.top_view_output.index + 1
                     print(self.top_view_output.pts[0].x())
@@ -553,13 +558,25 @@ class Form(QWidget):
         self.frame_area = []
         # frame area
         for idx in self.frame_area_output:
-            self.frame_area.append(list(idx))
+            temp_list = list(idx)
+            temp_list[0] += self.view.image_width / 8
+            temp_list[1] += self.view.image_height / 4.5
+            self.frame_area.append(temp_list)
 
         # top view
         self.top_view = copy.deepcopy(self.top_view_output)
+        for idx in range(len(self.top_view.pts)):
+            temp_point = QPointF(self.top_view.pts[idx].x() + self.view.image_width / 8,
+                                 self.top_view.pts[idx].y() + self.view.image_height / 4.5)
+            self.top_view.pts[idx] = temp_point
 
         # counting line
         self.counting_line_lst_calc = copy.deepcopy(self.counting_line_lst)
+        for idx in range(len(self.counting_line_lst_calc)):
+            self.counting_line_lst_calc[idx][0][0] += self.view.image_width / 8
+            self.counting_line_lst_calc[idx][0][1] += self.view.image_height / 4.5
+            self.counting_line_lst_calc[idx][1][0] += self.view.image_width / 8
+            self.counting_line_lst_calc[idx][1][1] += self.view.image_height / 4.5
 
 
 class CView(QGraphicsView):
@@ -617,6 +634,7 @@ class CView(QGraphicsView):
                 elif self.scale_count < 0:
                     for i in range(self.scale_count, 0):
                         tmp_pts = 1.1 * tmp_pts
+                tmp_pts = tmp_pts - QPointF(self.image_width / 8, self.image_height / 4.5)
 
                 self.parent().top_view_output.pts.append(tmp_pts)
                 self.parent().top_view.pts.append(self.start)
@@ -746,12 +764,15 @@ class CView(QGraphicsView):
                             self.bR.y = 1.1 * self.bR.y
                             # print(self.tL, self.bR)
 
-                self.parent().frame_area_lb.setText('frame_area: ( %4d, %4d ), ( %4d, %4d )' % (self.tL.x,
-                                                                                                self.tL.y,
-                                                                                                self.bR.x,
-                                                                                                self.bR.y))
-                self.parent().frame_area_output = ((int(self.tL.x), int(self.tL.y)),
-                                                   (int(self.bR.x), int(self.bR.y)))
+                self.parent().frame_area_lb.setText('frame_area: ( %4d, %4d ), ( %4d, %4d )'
+                                                    % (self.tL.x - self.image_width / 8,
+                                                       self.tL.y - self.image_height / 4.5,
+                                                       self.bR.x - self.image_width / 8,
+                                                       self.bR.y - self.image_height / 4.5))
+                self.parent().frame_area_output = ((int(self.tL.x - self.image_width / 8),
+                                                    int(self.tL.y - self.image_height / 4.5)),
+                                                   (int(self.bR.x - self.image_width / 8),
+                                                    int(self.bR.y - self.image_height / 4.5)))
 
     # 직사각형  대각위치의 좌표 2개 입력받으면 topLeft좌표와 width, height 반환 함수.
     def coordinateAdj(self, s_x, s_y, e_x, e_y):
@@ -823,6 +844,14 @@ class CView(QGraphicsView):
                     self.parent().counting_line_lst[j][1][0] = int(self.parent().counting_line_lst[j][1][0])
                     self.parent().counting_line_lst[j][1][1] = int(self.parent().counting_line_lst[j][1][1])
 
+                self.parent().counting_line_lst[-1][0][0] = int(self.parent().counting_line_lst[-1][0][0] -
+                                                                self.image_width / 8)
+                self.parent().counting_line_lst[-1][0][1] = int(self.parent().counting_line_lst[-1][0][1] -
+                                                                self.image_height / 4.5)
+                self.parent().counting_line_lst[-1][1][0] = int(self.parent().counting_line_lst[-1][1][0] -
+                                                                self.image_width / 8)
+                self.parent().counting_line_lst[-1][1][1] = int(self.parent().counting_line_lst[-1][1][1] -
+                                                                self.image_height / 4.5)
                 tmp_text = "counting_line: \n["
                 for i in range(len(self.parent().counting_line_lst)):
                     tmp_text = tmp_text + str(self.parent().counting_line_lst[i]) + ",\n"
@@ -858,7 +887,8 @@ class CView(QGraphicsView):
         # self.view.scene.addPixmap(img)
         self.item = self.scene.addPixmap(img)
 
-        self.item.setTransformOriginPoint(QPointF(self.image_width / 5, self.image_height / 5))
+        self.item.setTransformOriginPoint(QPointF((-1) * self.image_width / 8, (-1) * self.image_height / 4.5))
+        self.item.setPos(QPointF(self.image_width / 8, self.image_height / 4.5))
 
         self.setScene(self.scene)
         self.setCacheMode(QGraphicsView.CacheBackground)
@@ -867,8 +897,8 @@ class CView(QGraphicsView):
 
         chk = max(self.image_width / 16, self.image_height / 9)
         chk = int(chk / 12)
-        if chk > 6:
-            for i in range(chk - 6):
+        if chk > 4:
+            for i in range(chk - 4):
                 self.scale_down_pixmap()
         """
         if w >= 1920 or h >= 1080:
